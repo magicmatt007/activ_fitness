@@ -1,0 +1,81 @@
+# Example services.yaml entry
+
+
+# Service ID
+book:
+  name: Book Course
+  description: Book this course
+  target:
+    entity:
+      integration: activ_fitness
+      domain: binary_sensor
+
+cancel:
+  name: Cancel Course
+  description: Cancel this course 
+  target:
+    entity:
+      integration: activ_fitness
+      domain: binary_sensor
+
+
+# Service ID
+book_course:
+  # Service name as shown in UI
+  name: Book Course
+  # Description of the service
+  description: Book a Course
+  # If the service accepts entity IDs, target allows the user to specify entities by entity, device, or area. If `target` is specified, `entity_id` should not be defined in the `fields` map. By default it shows only targets matching entities from the same domain as the service, but if further customization is required, target supports the entity, device, and area selectors (https://www.home-assistant.io/docs/blueprint/selectors/). Entity selector parameters will automatically be applied to device and area, and device selector parameters will automatically be applied to area. 
+  # target:
+  # Different fields that your service accepts
+  target:
+    entity:
+      # include_entities: binary_sensor.activ_fitness_course*
+      # exclude_entities: 
+      #   - binary_sensor.activ_fitness_course_01
+      integration: activ_fitness
+      domain: binary_sensor
+  fields:
+    course_id:
+      # Field name as shown in UI
+      name: Course ID
+      # Description of the field
+      description: The course id of the course you want to book
+      # Whether or not field is required (default = false)
+      required: true
+      # Advanced fields are only shown when the advanced mode is enabled for the user (default = false)
+      # advanced: true
+      selector:
+        text:
+          type: number
+      # Example value that can be passed for this field
+      example: 13099629      
+    courses:
+      # Field name as shown in UI
+      name: Courses
+      # Description of the field
+      description: Select one or multiple courses
+      # Whether or not field is required (default = false)
+      required: true
+      # Advanced fields are only shown when the advanced mode is enabled for the user (default = false)
+      # advanced: true
+      selector:
+        select:
+          options: 
+            - A
+            - B
+            - C
+          multiple: true
+          mode: dropdown
+
+
+      # Example value that can be passed for this field
+      example: 13099629      
+
+get_course_list:
+  name: Get Courselist
+  description: List available courses in given centers
+
+get_checkins:
+  name: Get Checkins
+  description: List checkins
