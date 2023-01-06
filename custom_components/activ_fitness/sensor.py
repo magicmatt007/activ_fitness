@@ -1,20 +1,16 @@
 """Platform for sensor integration."""
 import logging
 
-_LOGGER = logging.getLogger(__name__)
-
-import random
 
 import datetime, pytz
-from homeassistant.const import Platform, PERCENTAGE
+from homeassistant.const import PERCENTAGE
 
-from homeassistant.helpers.entity import Entity, DeviceInfo
+from homeassistant.helpers.entity import DeviceInfo
 
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
-    SensorEntityDescription,
     SensorStateClass,
 )
 from homeassistant.core import callback
@@ -27,24 +23,19 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
-    UpdateFailed,
 )
 from . import MyUpdateCoordinator
 from .activ_fitness.api_class import Api
 
 from .const import (
     DOMAIN,
-    COURSENAME,
     CHECKINS_DEVICE_ID,
-    MANUFACTURER,
-    SUGGESTED_AREA,
-    Sensor_Type,
-    SENSOR_NAMES,
+    SensorType,
     COURSES_SHOWN,
 )
 from .bases_sensor import BaseSensorCourse
 
-# SCAN_INTERVAL = datetime.timedelta(seconds=10)
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -52,6 +43,7 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
+    """Set up entry."""
     _LOGGER.warning("Hello from sensor, async_setup_entry")
 
     coordinator: DataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id][
@@ -60,54 +52,54 @@ async def async_setup_entry(
 
     def course_template(course_no):
         return [
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.TITLE,
+                sensor_type=SensorType.TITLE,
                 coordinator=coordinator,
             ),
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.INSTRUCTOR,
+                sensor_type=SensorType.INSTRUCTOR,
                 coordinator=coordinator,
             ),
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.LOCATION,
+                sensor_type=SensorType.LOCATION,
                 coordinator=coordinator,
             ),
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.START,
+                sensor_type=SensorType.START,
                 coordinator=coordinator,
             ),
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.MAX_PERSONS,
+                sensor_type=SensorType.MAX_PERSONS,
                 coordinator=coordinator,
             ),
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.ACTUAL_PERSONS,
+                sensor_type=SensorType.ACTUAL_PERSONS,
                 coordinator=coordinator,
             ),
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.BOOKING_LEVEL,
+                sensor_type=SensorType.BOOKING_LEVEL,
                 coordinator=coordinator,
             ),
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.COURSE_ID,
+                sensor_type=SensorType.COURSE_ID,
                 coordinator=coordinator,
             ),
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.BOOKABLE,
+                sensor_type=SensorType.BOOKABLE,
                 coordinator=coordinator,
             ),
-            Course_Sensor(
+            CourseSensor(
                 course_no=course_no,
-                sensor_type=Sensor_Type.BOOKED,
+                sensor_type=SensorType.BOOKED,
                 coordinator=coordinator,
             ),
         ]
@@ -124,7 +116,7 @@ async def async_setup_entry(
     async_add_entities(new_entities)
 
 
-class Course_Sensor(BaseSensorCourse, SensorEntity):
+class CourseSensor(BaseSensorCourse, SensorEntity):
     """Representation of a Course Sensor."""
 
     # def __init__(self,**kwargs):
@@ -135,14 +127,14 @@ class Course_Sensor(BaseSensorCourse, SensorEntity):
             course_no=course_no, sensor_type=sensor_type, coordinator=coordinator
         )
 
-        if self._sensor_type == Sensor_Type.START:
+        if self._sensor_type == SensorType.START:
             self._attr_device_class = SensorDeviceClass.TIMESTAMP
         # self._attr_device_class = SensorDeviceClass.
-        if self._sensor_type in [Sensor_Type.ACTUAL_PERSONS, Sensor_Type.MAX_PERSONS]:
+        if self._sensor_type in [SensorType.ACTUAL_PERSONS, SensorType.MAX_PERSONS]:
             self._attr_native_unit_of_measurement = "people"
-        if self._sensor_type in [Sensor_Type.BOOKING_LEVEL]:
+        if self._sensor_type in [SensorType.BOOKING_LEVEL]:
             self._attr_native_unit_of_measurement = PERCENTAGE
-        if self._sensor_type in [Sensor_Type.COURSE_ID]:
+        if self._sensor_type in [SensorType.COURSE_ID]:
             # self._attr_entity_registry_visible_default = False
             self._attr_entity_registry_enabled_default = False
         # if self._sensor_type in [Sensor_Type.START]:
@@ -161,7 +153,7 @@ class Course_Sensor(BaseSensorCourse, SensorEntity):
         course = data.courses[self._course_no]
 
         self._attributes = {"course_id": course.course_id_tac}
-        if self._sensor_type == Sensor_Type.START:
+        if self._sensor_type == SensorType.START:
             self._attributes.update(
                 {"start_str": datetime.datetime.strftime(course.start_obj, "%a %H:%M")}
             )
@@ -199,7 +191,7 @@ class Course_Sensor(BaseSensorCourse, SensorEntity):
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        _LOGGER.warning(f"Hello from native_value")
+        _LOGGER.warning("Hello from native_value")
 
         # if self.coordinator.data is not None:
         if not self.coordinator.data:
@@ -213,25 +205,25 @@ class Course_Sensor(BaseSensorCourse, SensorEntity):
         # self._last_checkin = tz.localize(datetime.datetime.fromisoformat("2022-12-15T17:45:00"))
 
         match self._sensor_type:
-            case Sensor_Type.TITLE:
+            case SensorType.TITLE:
                 return course.title
-            case Sensor_Type.START:
+            case SensorType.START:
                 return tz.localize(course.start_obj)
-            case Sensor_Type.INSTRUCTOR:
+            case SensorType.INSTRUCTOR:
                 return course.instructor
-            case Sensor_Type.LOCATION:
+            case SensorType.LOCATION:
                 return course.center_name
-            case Sensor_Type.MAX_PERSONS:
+            case SensorType.MAX_PERSONS:
                 return int(course.max_persons)
-            case Sensor_Type.ACTUAL_PERSONS:
+            case SensorType.ACTUAL_PERSONS:
                 return int(course.actual_persons)
-            case Sensor_Type.BOOKING_LEVEL:
+            case SensorType.BOOKING_LEVEL:
                 return round(course.actual_persons / course.max_persons * 100, 0)
-            case Sensor_Type.COURSE_ID:
+            case SensorType.COURSE_ID:
                 return course.course_id_tac
-            case Sensor_Type.BOOKABLE:
+            case SensorType.BOOKABLE:
                 return course.bookable
-            case Sensor_Type.BOOKED:
+            case SensorType.BOOKED:
                 bookings = data.bookings
                 return course.course_id_tac in [
                     b.course_id_tac for b in bookings
@@ -261,7 +253,7 @@ class CheckinsTotalSensor(CoordinatorEntity, SensorEntity):
         self._attr_native_unit_of_measurement = "Checkins"
 
         _LOGGER.warning(
-            f"sensor.__init__:  %s, %s", self.entity_id, self._attr_unique_id
+            "sensor.__init__:  %s, %s", self.entity_id, self._attr_unique_id
         )
 
     @property
@@ -312,7 +304,7 @@ class CheckinsTotalTotalSensor(CoordinatorEntity, SensorEntity):
         self._attr_native_unit_of_measurement = "Checkins"
 
         _LOGGER.warning(
-            f"sensor.__init__:  %s, %s", self.entity_id, self._attr_unique_id
+            "sensor.__init__:  %s, %s", self.entity_id, self._attr_unique_id
         )
 
     @property
@@ -366,7 +358,7 @@ class LastCheckinSensor(CoordinatorEntity, SensorEntity):
                 # Serial numbers are unique identifiers within a specific domain
                 (DOMAIN, CHECKINS_DEVICE_ID)
             },
-            name=f"Checkins",
+            name="Checkins",
             manufacturer="Activ Fitness",
             suggested_area="Activ Fitness",
         )
@@ -375,12 +367,11 @@ class LastCheckinSensor(CoordinatorEntity, SensorEntity):
     def name(self):
         """Return the name of the sensor."""
         return "Last"
-        return "Last Checkin"
 
     @property
     def native_value(self):
         """Return the state of the sensor."""
-        _LOGGER.warning(f"LastCheckinSensor: Hello from native_value")
+        _LOGGER.warning("LastCheckinSensor: Hello from native_value")
 
         # if self.coordinator.data is not None:
         if not self.coordinator.data:

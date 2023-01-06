@@ -1,19 +1,13 @@
 """Platform for sensor integration."""
 from __future__ import annotations
 
-from datetime import timedelta
 import logging
 from homeassistant.const import Platform
-from homeassistant.const import STATE_OFF, STATE_ON
-from homeassistant.helpers.entity import Entity, DeviceInfo
 from homeassistant.helpers import entity_platform
 
-from homeassistant.core import callback
 
 from homeassistant.components.binary_sensor import (
-    BinarySensorDeviceClass,
     BinarySensorEntity,
-    BinarySensorEntityDescription,
 )
 
 from homeassistant.config_entries import ConfigEntry
@@ -21,37 +15,44 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
     DataUpdateCoordinator,
-    UpdateFailed,
 )
 from . import MyUpdateCoordinator
-from .activ_fitness.api_class import Api 
+from .activ_fitness.api_class import Api
 
-from .const import DOMAIN, COURSENAME, Sensor_Type,COURSES_SHOWN,LOCATION_PREFIX
+from .const import DOMAIN, COURSENAME, SensorType, COURSES_SHOWN, LOCATION_PREFIX
 from .bases_sensor import BaseSensorCourse
 
 
 _LOGGER = logging.getLogger(__name__)
 
-from typing import Literal, final
 
 # SCAN_INTERVAL = timedelta(seconds=10)
 
 # async def async_setup_entry(hass, config_entry, async_add_devices):
-async def async_setup_entry(hass: HomeAssistant,config_entry: ConfigEntry, async_add_entities: AddEntitiesCallback):
+async def async_setup_entry(
+    hass: HomeAssistant,
+    config_entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+):
+    """Set up entry."""
 
-    # TODO: Read how to implement the polling API: 
+    # TO DO: Read how to implement the polling API:
     # https://developers.home-assistant.io/docs/integration_fetching_data
     # and here: https://github.com/thebino/rki_covid/blob/master/custom_components/rki_covid/__init__.py
     # and even better here: https://github.com/cyberjunky/home-assistant-garmin_connect/blob/main/custom_components/garmin_connect/sensor.py
 
-    coordinator: DataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
-
+    coordinator: DataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id][
+        "coordinator"
+    ]
 
     new_entities = []
     for i in range(COURSES_SHOWN):
-        new_entities.append(Course_Binary_Sensor(course_no=i,sensor_type=Sensor_Type.BOOKED,coordinator=coordinator))
+        new_entities.append(
+            CourseBinarySensor(
+                course_no=i, sensor_type=SensorType.BOOKED, coordinator=coordinator
+            )
+        )
 
     async_add_entities(new_entities)
 
@@ -69,18 +70,26 @@ async def async_setup_entry(hass: HomeAssistant,config_entry: ConfigEntry, async
         "cancel",
     )
 
+    platform.async_register_entity_service(
+        "toggle_booking",
+        {},
+        "toggle_booking",
+    )
 
-class Course_Binary_Sensor(BaseSensorCourse, BinarySensorEntity):
+
+class CourseBinarySensor(BaseSensorCourse, BinarySensorEntity):
+    """Course Binary Sensor class."""
 
     # def __init__(self,**kwargs):
-    def __init__(self,course_no,sensor_type,coordinator: MyUpdateCoordinator):
+    def __init__(self, course_no, sensor_type, coordinator: MyUpdateCoordinator):
         """Initialize the sensor. Pass coordinator to CoordinatorEntity."""
-        # super().__init__(**kwargs)    
-        super().__init__(course_no=course_no,sensor_type=sensor_type,coordinator=coordinator)
+        # super().__init__(**kwargs)
+        super().__init__(
+            course_no=course_no, sensor_type=sensor_type, coordinator=coordinator
+        )
 
         self.entity_id = f"{Platform.BINARY_SENSOR}.{DOMAIN}_{COURSENAME.lower()}_{self._course_no}_{self._sensor_type}"
-        self._attr_has_entity_name = False # Needs to be False so the automated UI from "Add to Dashboard" really uses the current updated name
-
+        self._attr_has_entity_name = False  # Needs to be False so the automated UI from "Add to Dashboard" really uses the current updated name
 
     @property
     def is_on(self):
@@ -90,12 +99,13 @@ class Course_Binary_Sensor(BaseSensorCourse, BinarySensorEntity):
             return None
         data: Api = self.coordinator.data
 
-        course = data.courses[self._course_no]
-        bookings = data.bookings
-        if course.course_id_tac in [b.course_id_tac for b in bookings]:
-            return True
-        else:
-            return False
+        # course = data.courses[self._course_no]
+        # bookings = data.bookings
+        # if course.course_id_tac in [b.course_id_tac for b in bookings]:
+        #     return True
+        # return False
+
+        return data.is_booked(self._course_no)
 
     @property
     def name(self):
@@ -105,27 +115,33 @@ class Course_Binary_Sensor(BaseSensorCourse, BinarySensorEntity):
             return None
         data: Api = self.coordinator.data
         course = data.courses[self._course_no]
-        _booked_str = 'BOOKED' if self.is_on else 'NOT BOOKED'
+        _booked_str = "BOOKED" if self.is_on else "NOT BOOKED"
         return f'{course.title} {course.start_str} in {course.center_name.replace(LOCATION_PREFIX,"")} with {course.instructor} - {_booked_str}'
 
     async def book(self):
-        _LOGGER.warning(f"hello from book service in binary_sensor {self.entity_id}")
+        """Book course."""
+        _LOGGER.warning("hello from book service in binary_sensor %s", self.entity_id)
 
         # if self.coordinator.data is not None:
         if not self.coordinator.data:
             return None
         data: Api = self.coordinator.data
         course = data.courses[self._course_no]
-        if course.bookable and not course.booked:
-            await data.login(user=self.coordinator.username,pwd=self.coordinator.password)
-            await data.book_course(course_id=course.course_id_tac)
-            await self.coordinator.async_refresh()
-            _LOGGER.warning(f"Course {course} booked")
-        else:
-            _LOGGER.warning(f"Course {course} not bookable yet. Try again later")
+        if data.is_booked(self._course_no):
+            _LOGGER.warning("Course %s already booked", course)
+            return
+        if not course.bookable:
+            _LOGGER.warning("Course %s not bookable yet. Try again later", {course})
+            return
+
+        await data.login(user=self.coordinator.username, pwd=self.coordinator.password)
+        await data.book_course(course_id=course.course_id_tac)
+        await self.coordinator.async_refresh()
+        _LOGGER.warning("Course %s booked", course)
 
     async def cancel(self) -> None:
-        _LOGGER.warning(f"hello from cancel service in binary_sensor {self.entity_id}")
+        """Cancel course."""
+        _LOGGER.warning("hello from cancel service in binary_sensor %s", self.entity_id)
         # if self.coordinator.data is not None:
         if not self.coordinator.data:
             return None
@@ -133,10 +149,45 @@ class Course_Binary_Sensor(BaseSensorCourse, BinarySensorEntity):
 
         course = data.courses[self._course_no]
         course_id = course.course_id_tac
-        booking_ids = [b.booking_id_tac for b in data.bookings if b.course_id_tac == course_id]
-        if len(booking_ids)==1:
+        booking_ids = [
+            b.booking_id_tac for b in data.bookings if b.course_id_tac == course_id
+        ]
+        if len(booking_ids) == 1:
             await data.cancel_course(booking_id=booking_ids[0])
             await self.coordinator.async_refresh()
-            _LOGGER.warning(f"Course {course} with booking id {booking_ids[0]} cancelled")
+            _LOGGER.warning(
+                "Course %s with booking id %s cancelled", course, booking_ids[0]
+            )
         else:
-            _LOGGER.warning(f"Course {course} was not booked")
+            _LOGGER.warning("Course %s was not booked", course)
+
+    async def toggle_booking(self) -> None:
+        """Toggle course booking"""
+        _LOGGER.warning(
+            "hello from toggle_booking service in binary_sensor %s", self.entity_id
+        )
+
+        if not self.coordinator.data:
+            return None
+        data: Api = self.coordinator.data
+        course = data.courses[self._course_no]
+
+        _LOGGER.warning("course.bookable: %s", course.bookable)
+        _LOGGER.warning(
+            "course.booked: %s",
+            data.is_booked(self._course_no),
+        )
+
+        if course.bookable:
+            if not data.is_booked(self._course_no):
+                # Book course:
+                await self.book()
+                _LOGGER.warning("Course %s booked via toggle")
+            else:
+                # Cancel course:
+                await self.cancel()
+                _LOGGER.warning("Course %s cancelled", course)
+        else:
+            _LOGGER.warning(
+                "Course %s not bookable yet (toggle). Try again later", course
+            )

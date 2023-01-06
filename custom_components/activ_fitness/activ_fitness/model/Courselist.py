@@ -1,28 +1,28 @@
 import json
-from .Center import Center
-from .Checkin import Checkin
 from .Course import Course
 
+
 class Courselist:
-  def __init__(self,courses):
-    self.courses:list[Course] = courses
+    """Courselist class."""
 
-  @property
-  def coursetitles(self):
-    return {c.title for c in self.courses}
+    def __init__(self, courses):
+        self.courses: list[Course] = courses
 
-  @property
-  def courses_bookable(self):
-    return [c for c in self.courses if c.bookable== True]
+    @property
+    def coursetitles(self):
+        return {c.title for c in self.courses}
 
-  @staticmethod
-  def from_json_str(json_str):
-    content_dct = json.loads(json_str)
-    courses_lst = content_dct['courses']
+    @property
+    def courses_bookable(self):
+        return [c for c in self.courses if c.bookable == True]
 
-    courses_obj_lst = []
-    for c in courses_lst:
-      courses_obj_lst.append(Course.from_json(c))
+    @staticmethod
+    def from_json_str(json_str):
+        content_dct = json.loads(json_str)
+        courses_lst = content_dct["courses"]
 
-    return Courselist(courses_obj_lst)
+        courses_obj_lst = []
+        for c in courses_lst:
+            courses_obj_lst.append(Course.from_json(c))
 
+        return Courselist(courses_obj_lst)
