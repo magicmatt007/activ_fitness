@@ -5,7 +5,9 @@
   "documentation": "https://github.com/magicmatt007/activ_fitness",
   "issue_tracker": "https://github.com/magicmatt007/activ_fitness/issues",
   "dependencies": [],
-  "codeowners": [],
+  "codeowners": [
+    "@magicmatt007"
+  ],
   "requirements": [],
   "ssdp": [],
   "zeroconf": [],
