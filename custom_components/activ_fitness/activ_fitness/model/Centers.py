@@ -1,5 +1,8 @@
+"""Centers class."""
+
 import json
-from .Center import Center
+
+from .center import Center
 
 
 class Centers:
@@ -15,13 +18,13 @@ class Centers:
         """Create instance from JSON."""
         content_json = json.loads(json_str)
         centers_lst = []
-        for c in content_json:
-            if c["title"] == "Activ Fitness":
-                centers_lst = c["centers"]
+        for center in content_json:
+            if center["title"] == "Activ Fitness":
+                centers_lst = center["centers"]
 
         centers_obj_lst = []
-        for c in centers_lst:
-            centers_obj_lst.append(Center.from_json(c))
+        for center in centers_lst:
+            centers_obj_lst.append(Center.from_json(center))
 
         centers_by_id = {c.center_id: c.title for c in centers_obj_lst}
         centers_by_name = {c.title: c.center_id for c in centers_obj_lst}

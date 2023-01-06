@@ -1,30 +1,19 @@
 """The example sensor integration."""
 from __future__ import annotations
 
-import asyncio
+from datetime import timedelta
 import logging
+
+import async_timeout
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers import aiohttp_client
+from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 # from .activ_fitness import api
 from .activ_fitness.api_class import Api
-
-from homeassistant.helpers import aiohttp_client, entity_registry, update_coordinator
-
-from homeassistant.helpers.update_coordinator import (
-    CoordinatorEntity,
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
-from datetime import timedelta
-import async_timeout
-from homeassistant.exceptions import ConfigEntryAuthFailed
-
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.typing import ConfigType
-from homeassistant.core import HomeAssistant, ServiceCall, callback
-from homeassistant.const import Platform
-
 from .const import DOMAIN, UPDATE_INTERVAL
 
 _LOGGER = logging.getLogger(__name__)
@@ -51,12 +40,12 @@ async def async_setup(hass: HomeAssistant, config: ConfigType):
 
         entity_ids = call.data.get(ATTR_NAME, DEFAULT_NAME)
         # entity_ids = call.target
-        _LOGGER.warning(f"book_course: {entity_ids}")
+        _LOGGER.warning("book_course: %s", entity_ids)
 
         attributes = hass.states.get(entity_ids[0]).attributes
-        _LOGGER.warning(f"book_course attributes: {attributes}")
+        _LOGGER.warning("book_course attributes: %s", attributes)
         course_id = attributes["course_id"]
-        _LOGGER.warning(f"book_course id: {course_id}")
+        _LOGGER.warning("book_course id: %s", course_id)
 
         await hass.states.async_set("activ_fitness.book_course", entity_ids)
 
@@ -65,11 +54,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType):
         """Handle the service call book_course."""
 
         courselist = await _api.get_course_list(
-            coursetitles=[""], centerIds=[23, 33, 54]
+            coursetitles=[""], center_ids=[23, 33, 54]
         )
-        _LOGGER.warning(f"get_course_list: {courselist.courses_bookable}")
+        _LOGGER.warning("get_course_list: %s", courselist.courses_bookable)
         _LOGGER.warning(
-            f"get_course_list: {courselist.courses_bookable[0].course_id_tac}"
+            "get_course_list: %s", courselist.courses_bookable[0].course_id_tac
         )
 
         hass.states.async_set("activ_fitness.get_courselist", courselist.courses)
@@ -85,13 +74,14 @@ async def async_setup(hass: HomeAssistant, config: ConfigType):
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up entry."""
     username = entry.data["username"]
     centers = entry.data["centers"]
     center_ids = entry.data["center_ids"]
     courses = entry.data["courses"]
-    _LOGGER.warning(f"User input {username} {centers} {center_ids} {courses}")
+    _LOGGER.warning("User input %s %s %s %s", username, centers, center_ids, courses)
 
-    # #TODO: get Api object:
+    # #TO DO: get Api object:
     # my_api = "dummy_api"
     # # hass.data[DOMAIN][entry.entry_id] = my_api
     # hass.data.setdefault(DOMAIN, {})[entry.entry_id] = my_api
@@ -135,8 +125,8 @@ class MyUpdateCoordinator(DataUpdateCoordinator):
         self,
         hass,
         entry: ConfigEntry,
-        selected_centers: list[int] = [54],
-        selected_course_names: list[str] = ["BODYPUMP® 55'"],
+        selected_centers: list[int],
+        selected_course_names: list[str],
     ):
         """Initialize my coordinator."""
         super().__init__(
@@ -175,7 +165,7 @@ class MyUpdateCoordinator(DataUpdateCoordinator):
                 await self._api.get_center_ids()
                 await self._api.get_course_list(
                     coursetitles=self.selected_course_names,
-                    centerIds=self.selected_centers,
+                    center_ids=self.selected_centers,
                 )
                 await self._api.get_bookings()
                 await self._api.get_checkins()

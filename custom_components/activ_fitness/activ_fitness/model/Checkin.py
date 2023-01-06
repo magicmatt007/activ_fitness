@@ -1,3 +1,5 @@
+"""Checkin class."""
+
 import datetime
 
 
@@ -33,6 +35,7 @@ class Checkin:
 
     @staticmethod
     def from_table_row(table_row):
+        """Create instance from JSON."""
         date = table_row[0]
         center = table_row[1]
         start_end = table_row[2]

@@ -1,11 +1,30 @@
+"""Api class."""
+
 # Consider replacing request library with aiohttp
 # See also: https://developers.home-assistant.io/docs/api_lib_auth
 # See also: https://betterprogramming.pub/making-api-requests-in-python-aiohttp-client-vs-requests-26a7025c39a6
 # See also: https://realpython.com/python-async-features/#synchronous-blocking-http-calls
 # See also: https://docs.aiohttp.org/en/stable/client_quickstart.html
 
+import base64  # required to generate code challenge
 import datetime
+import hashlib
+import json
 import logging
+import os
+import re
+import urllib.parse
+
+import aiohttp
+
+from .MyHTMLParser import MyHTMLParser  # Parser to scrape checkins from HTML table
+from .model.bookings import Bookings
+from .model.center import Center
+from .model.centers import Centers
+from .model.checkin import Checkin
+from .model.checkins import Checkins
+from .model.course import Course
+from .model.courselist import Courselist
 
 mylogger = logging.getLogger("mylogger")
 mylogger.setLevel(logging.DEBUG)
@@ -13,22 +32,6 @@ mylogger.setLevel(logging.INFO)
 console_handler = logging.StreamHandler()
 mylogger.addHandler(console_handler)
 # logging.basicConfig(level=logging.DEBUG)
-
-import base64, hashlib, re, os  # required to generate code challenge
-import json
-import time
-import urllib.parse
-import aiohttp
-
-from .model.Bookings import Bookings
-from .model.Centers import Centers
-from .model.Checkins import Checkins
-from .model.Checkin import Checkin
-from .model.Center import Center
-from .model.Courselist import Courselist
-from .model.Course import Course
-
-from .MyHTMLParser import MyHTMLParser  # Parser to scrape checkins from HTML table
 
 
 class Api:
@@ -93,28 +96,28 @@ class Api:
 
         # Step 10: Migros Login GET csrf
         url = "https://login.migros.ch/login"
-        r = await self.session.get(
+        resp = await self.session.get(
             url, allow_redirects=False, ssl_context=self.ssl_context
         )
-        mylogger.debug(f"\nStep 10 {url}")
-        cj = self.session.cookie_jar
+        mylogger.debug("\nStep 10 %s", url)
+        cookie_jar = self.session.cookie_jar
         csrf = ""
-        for c in cj:
-            if c.key == "CSRF":
-                csrf = c.value
+        for cookie in cookie_jar:
+            if cookie.key == "CSRF":
+                csrf = cookie.value
 
         # Step 20: Migros Login POST credentials
         url = "https://login.migros.ch/login"
-        mylogger.debug(f"\nStep 20 {url}")
+        mylogger.debug("\nStep 20 %s", url)
         payload = {"_csrf": csrf, "username": user, "password": pwd}
-        r = await self.session.post(
+        resp = await self.session.post(
             url, data=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
-        mylogger.debug(r)
+        mylogger.debug(resp)
 
         # Step 30: Migros OAuth2 authorize: get code and state for client_id and code_challenge
         url = "https://login.migros.ch/oauth2/authorize"
-        mylogger.debug(f"\nStep 30 {url}")
+        mylogger.debug("\nStep 30 %s", url)
         code_challenge, code_verifier = self._generate_code_challenge()
         state = "ewijoigrqghoinqgr"
         payload = {
@@ -130,12 +133,12 @@ class Api:
             "claims": '{"userinfo":{"sub":null,"gender":null,"given_name":null,"family_name":null,"email":null,"birthdate":null},"id_token":{"email":null}}',
         }
 
-        r = await self.session.get(
+        resp = await self.session.get(
             url, params=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
-        mylogger.debug(r)
+        mylogger.debug(resp)
         try:
-            location = r.headers["Location"]
+            location = resp.headers["Location"]
             parse_result = urllib.parse.urlparse(location)
             query_dict = urllib.parse.parse_qs(parse_result.query)
             state = query_dict["state"][0]
@@ -146,7 +149,7 @@ class Api:
 
         # Step 40: Migros Login oaut2 get Token for code, client_id, client_secret
         url = "https://login.migros.ch/oauth2/token"
-        mylogger.debug(f"\nStep 40 {url}")
+        mylogger.debug("\nStep 40 %s", url)
         payload = {
             "client_id": "activ_fitness_N57kZr1PSoSMo2qp_U7Gug",
             "client_secret": "rwEYhfbT5aywLaiiG58CK8ptbPnZFc",
@@ -155,18 +158,18 @@ class Api:
             "code_verifier": code_verifier,
             "grant_type": "authorization_code",
         }
-        r = await self.session.post(
+        resp = await self.session.post(
             url, data=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
-        mylogger.debug(r)
+        mylogger.debug(resp)
 
-        content_lst = await r.json()
+        content_lst = await resp.json()
         id_token = content_lst["id_token"]
         access_token = content_lst["access_token"]
 
         # Step 50: Migros oauth2 authorize with token and client_id activfitness
         url = "https://login.migros.ch/oauth2/authorize"
-        mylogger.debug(f"\nStep 50 {url}")
+        mylogger.debug("\nStep 50 %s", url)
         code_challenge, code_verifier = self._generate_code_challenge()
         payload = {
             "client_id": "activ_fitness_N57kZr1PSoSMo2qp_U7Gug",
@@ -176,21 +179,22 @@ class Api:
             "state": state,
             "code_challenge": code_challenge,
             "code_challenge_method": "S256",
-            "promt": "none",
+            "prompt": "none",
             "ui_locales": "de",
             "id_token": id_token,
             "response_mode": "query",
             "claims": '{"userinfo":{"sub":null,"gender":null,"given_name":null,"family_name":null,"email":null,"birthdate":null},"id_token":{"email":null}}',
         }
-        r = await self.session.get(
+        resp = await self.session.get(
             url, params=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
-        mylogger.debug(r)
+        mylogger.debug(resp)
 
         self._access_token = access_token
         return access_token
 
     def logged_in(self):
+        """WIP."""
         if self._access_token != "":
             return True
         else:
@@ -201,14 +205,16 @@ class Api:
         Returns a list of all centers as Center objects
         """
         url = "https://blfa-api.migros.ch/kp/api/Format?"
-        r = await self.session.get(url=url, allow_redirects=False, ssl=self.ssl_context)
-        mylogger.debug(f"\nGetting Centers {url}")
-        content = await r.text()
+        resp = await self.session.get(
+            url=url, allow_redirects=False, ssl=self.ssl_context
+        )
+        mylogger.debug("\nGetting Centers %s", url)
+        content = await resp.text()
 
         centers = Centers.from_json_str(content)
         mylogger.debug(centers.centers)
-        mylogger.debug(f"\n{centers.centers_by_id}")
-        mylogger.debug(f"\n{centers.centers_by_name}")
+        mylogger.debug("\n%s", centers.centers_by_id)
+        mylogger.debug("\n%s", centers.centers_by_name)
 
         self.centers = centers.centers
         self.centers_by_id = centers.centers_by_id
@@ -218,17 +224,17 @@ class Api:
     # async def get_course_list(self,coursetitle:str="", centerIds: list[int]=[33,23,54]):  # "BODYPUMP® 55'"
     async def get_course_list(
         self,
-        coursetitles: list[str] = [""],
-        centerIds: list[int] = [33, 23, 54],
+        coursetitles: list[str],
+        center_ids: list[int],
         take: int = 10,
     ):  # "BODYPUMP® 55'"
         """
-        Returns availble course lessons as Courselist object.
+        Returns available course lessons as Courselist object.
         centerIds: at least one center id must be provided
         coursetitle: If empty, all course lessons are listed. Otherwise, only the lessons of the given courses are listed
         """
         url = "https://blfa-api.migros.ch/kp/api/Courselist/all"
-        mylogger.debug(f"\nGetting Coureselist {url}")
+        mylogger.debug("\nGetting Coureselist %s", url)
 
         # take = 3
         # take = 10
@@ -237,7 +243,8 @@ class Api:
             coursetitles_lst.extend(
                 list(
                     map(
-                        lambda x: {"centerId": x, "coursetitle": coursetitle}, centerIds
+                        lambda x: {"centerId": x, "coursetitle": coursetitle},
+                        center_ids,
                     )
                 )
             )
@@ -248,7 +255,7 @@ class Api:
                 "take": take,
                 "selectMethod": 2,
                 "memberIdTac": 0,
-                "centerIds": centerIds,
+                "centerIds": center_ids,
                 "daytimeIds": [],
                 "weekdayIds": [],
                 "coursetitles": coursetitles_lst,
@@ -256,20 +263,20 @@ class Api:
         )
         headers = {"Content-Type": "application/json"}
 
-        r = await self.session.post(
+        resp = await self.session.post(
             url,
             data=payload,
             headers=headers,
             allow_redirects=False,
             ssl_context=self.ssl_context,
         )
-        content_json_str = await r.text()
+        content_json_str = await resp.text()
 
         courselist = Courselist.from_json_str(content_json_str)
 
         mylogger.debug("\nPrinting Courses from Objects in Courselist:")
-        for c in courselist.courses:
-            mylogger.debug(c)
+        for course in courselist.courses:
+            mylogger.debug(course)
 
         self.courses = courselist.courses
         self.courses_bookable = courselist.courses_bookable
@@ -285,20 +292,20 @@ class Api:
         #   await self.login(user=my_secrets.user,pwd=my_secrets.pwd)
 
         url = "https://blfa-api.migros.ch/kp/api/Booking?"
-        mylogger.debug(f"\nGet bookings {url}")
+        mylogger.debug("\nGet bookings %s", url)
         headers = {"authorization": f"Bearer {self._access_token}"}
-        r = await self.session.get(
+        resp = await self.session.get(
             url, headers=headers, allow_redirects=False, ssl=self.ssl_context
         )
-        mylogger.debug(r.status)
-        mylogger.debug(r)
-        content_json_str = await r.text()
+        mylogger.debug(resp.status)
+        mylogger.debug(resp)
+        content_json_str = await resp.text()
         bookings = Bookings.from_json_str(content_json_str)
 
         if len(bookings.courses) == 0:
             mylogger.debug("No booked courses")
-        for b in bookings.courses:
-            mylogger.debug(b)
+        for course in bookings.courses:
+            mylogger.debug(course)
 
         self.bookings = bookings.courses
         return bookings
@@ -310,7 +317,7 @@ class Api:
         to:
         """
         url = "https://shop-schlieren.activfitness.ch/account/dashboard/checkins/"
-        mylogger.debug(f"\nget_checkings {from_} to {to_}: {url}")
+        mylogger.debug("\nget_checkings %s to %s: %s", from_, to_, url)
 
         payload = {
             "from": from_,
@@ -320,19 +327,22 @@ class Api:
             "_": "1669453211792",
         }
 
-        r = await self.session.get(
+        resp = await self.session.get(
             url, params=payload, allow_redirects=True, ssl_context=self.ssl_context
         )
-        mylogger.debug(r)
+        mylogger.debug(resp)
 
         parser = MyHTMLParser()
-        parser.feed(await r.text())
+        parser.feed(await resp.text())
         table = parser.tables[0]
         checkins = Checkins.from_table(table)
 
-        mylogger.debug(f"\nVisits between {from_} and {to_}: {len(checkins.checkins)}")
-        for c in checkins.checkins:
-            mylogger.debug(c)
+        mylogger.debug(
+            "\nVisits between %s and %s: %s", from_, to_, len(checkins.checkins)
+        )
+
+        for checkin in checkins.checkins:
+            mylogger.debug(checkin)
 
         checkins_obj = Checkins.from_table(table)
 
@@ -347,7 +357,7 @@ class Api:
         Books a course
         """
         url = "https://blfa-api.migros.ch/kp/api/Booking?"
-        mylogger.debug(f"\nBooking a course {url}")
+        mylogger.debug("\nBooking a course %s", url)
         headers = {
             "authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json",
@@ -355,15 +365,15 @@ class Api:
 
         payload = {"language": "de", "centerId": 23, "courseIdTac": course_id}
 
-        r = await self.session.post(
+        resp = await self.session.post(
             url,
             headers=headers,
             json=payload,
             allow_redirects=False,
             ssl=self.ssl_context,
         )
-        mylogger.debug(r)
-        mylogger.debug(r.content)
+        mylogger.debug(resp)
+        mylogger.debug(resp.content)
         # time.sleep(1)
 
     async def cancel_course(self, booking_id):
@@ -371,7 +381,7 @@ class Api:
         Cancels a course
         """
         url = "https://blfa-api.migros.ch/kp/api/Booking"
-        mylogger.debug(f"\nCancelling course {url}")
+        mylogger.debug("\nCancelling course %s", url)
         headers = {
             "authorization": f"Bearer {self._access_token}",
             "Content-Type": "application/json",
@@ -379,13 +389,13 @@ class Api:
 
         payload = {"language": "de", "bookingIdTac": booking_id}
 
-        r = await self.session.delete(
+        resp = await self.session.delete(
             url,
             headers=headers,
             json=payload,
             allow_redirects=False,
             ssl=self.ssl_context,
         )
-        mylogger.debug(r)
-        mylogger.debug(r.headers)
-        mylogger.debug(r.content)
+        mylogger.debug(resp)
+        mylogger.debug(resp.headers)
+        mylogger.debug(resp.content)

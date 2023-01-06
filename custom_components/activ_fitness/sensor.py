@@ -1,39 +1,27 @@
 """Platform for sensor integration."""
+import datetime
 import logging
-
-
-import datetime, pytz
-from homeassistant.const import PERCENTAGE
-
-from homeassistant.helpers.entity import DeviceInfo
-
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.core import callback
-
-
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.const import PERCENTAGE
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-
 from homeassistant.helpers.update_coordinator import (
     CoordinatorEntity,
     DataUpdateCoordinator,
 )
+import pytz
+
 from . import MyUpdateCoordinator
 from .activ_fitness.api_class import Api
-
-from .const import (
-    DOMAIN,
-    CHECKINS_DEVICE_ID,
-    SensorType,
-    COURSES_SHOWN,
-)
 from .bases_sensor import BaseSensorCourse
+from .const import CHECKINS_DEVICE_ID, COURSES_SHOWN, DOMAIN, SensorType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -200,7 +188,7 @@ class CourseSensor(BaseSensorCourse, SensorEntity):
 
         course = data.courses[self._course_no]
 
-        tz = pytz.timezone("Europe/Zurich")
+        timezone = pytz.timezone("Europe/Zurich")
         # self._attr_device_class = SensorDeviceClass.TIMESTAMP
         # self._last_checkin = tz.localize(datetime.datetime.fromisoformat("2022-12-15T17:45:00"))
 
@@ -208,7 +196,7 @@ class CourseSensor(BaseSensorCourse, SensorEntity):
             case SensorType.TITLE:
                 return course.title
             case SensorType.START:
-                return tz.localize(course.start_obj)
+                return timezone.localize(course.start_obj)
             case SensorType.INSTRUCTOR:
                 return course.instructor
             case SensorType.LOCATION:
@@ -378,9 +366,7 @@ class LastCheckinSensor(CoordinatorEntity, SensorEntity):
             return None
         data: Api = self.coordinator.data
 
-        tz = pytz.timezone("Europe/Zurich")
+        timezone = pytz.timezone("Europe/Zurich")
         if data.last_checkin is not None:
-            return tz.localize(data.last_checkin)
-        else:
-            return False
-        # return self._last_checkin
+            return timezone.localize(data.last_checkin)
+        return False

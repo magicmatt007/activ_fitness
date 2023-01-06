@@ -4,14 +4,13 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-import voluptuous as vol
-from homeassistant.helpers.selector import selector
-from homeassistant.helpers import aiohttp_client
-
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import aiohttp_client
+from homeassistant.helpers.selector import selector
+import voluptuous as vol
 
 from .activ_fitness.api_class import Api
 from .const import DOMAIN
@@ -61,7 +60,7 @@ async def validate_input(hass: HomeAssistant, data: dict[str, Any]) -> dict[str,
 
     Data has the keys from STEP_USER_DATA_SCHEMA with values provided by the user.
     """
-    # TODO validate the data can be used to set up a connection.
+    # TO DO validate the data can be used to set up a connection.
 
     # If your PyPI package is not built with async, pass your methods
     # to the executor:
@@ -100,7 +99,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         _api = Api(session=session, ssl_context=ssl_context)
         centers_dict = (await _api.get_center_ids()).centers_by_name
         centers_lst = list(centers_dict.keys())
-        _LOGGER.warning(f"ConfigFlow - Centers by name: {centers_lst}")
+        _LOGGER.warning("ConfigFlow - Centers by name: %s", centers_lst)
 
         STEP_USER_DATA_SCHEMA = vol.Schema(
             {
@@ -136,15 +135,15 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors["base"] = "unknown"
         else:
             self.input_data = user_input
-            _LOGGER.warning(f"Selected centers: {user_input['centers']}")
+            _LOGGER.warning("Selected centers: %s", user_input["centers"])
             center_ids = [centers_dict[c] for c in user_input["centers"]]
-            _LOGGER.warning(f"Selected center ids: {center_ids}")
+            _LOGGER.warning("Selected center ids: %s", center_ids)
             self.input_data.update({"center_ids": center_ids})
 
             self._coursetitles_sorted = sorted(
-                (await _api.get_course_list(centerIds=center_ids)).coursetitles
+                (await _api.get_course_list(center_ids=center_ids)).coursetitles
             )
-            _LOGGER.warning(f"Courses in these centers: {self._coursetitles_sorted}")
+            _LOGGER.warning("Courses in these centers: %s", self._coursetitles_sorted)
 
             return await self.async_step_courses()
             # return self.async_create_entry(title=info["title"], data=user_input)

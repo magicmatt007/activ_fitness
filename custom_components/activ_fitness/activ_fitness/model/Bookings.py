@@ -1,5 +1,8 @@
+"""Bookings class"""
+
 import json
-from .Course import Course
+
+from .course import Course
 
 
 class Bookings:
@@ -10,10 +13,11 @@ class Bookings:
 
     @staticmethod
     def from_json_str(json_str):
+        """ "Create instance from JSON."""
         courses_lst = json.loads(json_str)
 
         courses_obj_lst: list[Course] = []
-        for c in courses_lst:
-            courses_obj_lst.append(Course.from_json(c))
+        for course in courses_lst:
+            courses_obj_lst.append(Course.from_json(course))
 
         return Bookings(courses_obj_lst)

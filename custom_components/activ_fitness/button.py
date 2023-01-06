@@ -1,28 +1,18 @@
 """Platform for sensor integration."""
 import logging
 
-_LOGGER = logging.getLogger(__name__)
-
-
-from homeassistant.const import Platform
-
-
-from homeassistant.components.button import (
-    ButtonEntity,
-)
-
-
+from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import MyUpdateCoordinator
 from .activ_fitness.api_class import Api
-
-from .const import DOMAIN, COURSENAME, COURSES_SHOWN
 from .bases_sensor import BaseEntityCourse
+from .const import COURSENAME, COURSES_SHOWN, DOMAIN
 
-# SCAN_INTERVAL = datetime.timedelta(seconds=10)
+_LOGGER = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -30,6 +20,7 @@ async def async_setup_entry(
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ):
+    """Set up entry."""
     _LOGGER.warning("Hello from sensor, async_setup_entry")
 
     # coordinator: DataUpdateCoordinator = hass.data[DOMAIN][config_entry.entry_id]["coordinator"]
@@ -57,7 +48,7 @@ class BookButton(BaseEntityCourse, ButtonEntity):
             f"{Platform.BUTTON}.{DOMAIN}_{COURSENAME.lower()}_{course_no}_book"
         )
         self._attr_has_entity_name = True
-        self._attr_name = f"Book"
+        self._attr_name = "Book"
 
     async def async_press(self) -> None:
         """Handle the button press."""
@@ -69,9 +60,9 @@ class BookButton(BaseEntityCourse, ButtonEntity):
         if course.bookable and not course.booked:
             await data.book_course(course_id=course.course_id_tac)
             await self.coordinator.async_refresh()
-            _LOGGER.warning(f"Course {course} booked")
+            _LOGGER.warning("Course %s booked", course)
         else:
-            _LOGGER.warning(f"Course {course} not bookable yet. Try again later")
+            _LOGGER.warning("Course %s not bookable yet. Try again later", course)
 
 
 class CancelButton(BaseEntityCourse, ButtonEntity):
@@ -86,7 +77,7 @@ class CancelButton(BaseEntityCourse, ButtonEntity):
             f"{Platform.BUTTON}.{DOMAIN}_{COURSENAME.lower()}_{course_no}_cancel"
         )
         self._attr_has_entity_name = True
-        self._attr_name = f"Cancel"
+        self._attr_name = "Cancel"
 
     async def async_press(self) -> None:
         """Handle the button press."""
@@ -104,7 +95,7 @@ class CancelButton(BaseEntityCourse, ButtonEntity):
             await data.cancel_course(booking_id=booking_ids[0])
             await self.coordinator.async_refresh()
             _LOGGER.warning(
-                f"Course {course} with booking id {booking_ids[0]} cancelled"
+                "Course %s with booking id %s cancelled", course, booking_ids[0]
             )
         else:
-            _LOGGER.warning(f"Course {course} was not booked")
+            _LOGGER.warning("Course %s was not booked", course)

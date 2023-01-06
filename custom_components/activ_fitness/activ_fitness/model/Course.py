@@ -1,3 +1,5 @@
+"""Course class."""
+
 import datetime
 
 from ..centers_dct import centers_manual

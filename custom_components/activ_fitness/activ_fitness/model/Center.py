@@ -1,3 +1,6 @@
+"""Center class."""
+
+
 class Center:
     """Center class."""
 
