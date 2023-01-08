@@ -1,6 +1,6 @@
 """Checkins class."""
 
-from .checkin_x import Checkin
+from .checkin import Checkin
 
 
 class Checkins:

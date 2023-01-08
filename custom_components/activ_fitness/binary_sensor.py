@@ -99,11 +99,11 @@ class CourseBinarySensor(BaseSensorCourse, BinarySensorEntity):
 
         return data.is_booked(self._course_no)
 
-    @property
-    def state(self):
-        if self.is_on:
-            return "booked"
-        return "not booked"
+    # @property
+    # def state(self):
+    #     if self.is_on:
+    #         return "booked"
+    #     return "not booked"
 
     @property
     def name(self):

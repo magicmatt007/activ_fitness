@@ -2,8 +2,9 @@ from html.parser import HTMLParser
 
 
 class MyHTMLParser(HTMLParser):
-    def __init__(self, decode_html_entities: bool = False,
-        data_separator: str = ' '):
+    """MyHTMLParser class."""
+
+    def __init__(self, decode_html_entities: bool = False, data_separator: str = " "):
         HTMLParser.__init__(self, convert_charrefs=decode_html_entities)
 
         self._data_separator = data_separator
@@ -22,16 +23,15 @@ class MyHTMLParser(HTMLParser):
         div_class_ext = []
         for d in div_class:
             div_class_ext.extend(d.split())
-        if 'table' in div_class_ext: # cell
+        if "table" in div_class_ext:  # cell
             self._in_table = True
 
-        if 'table-cell' in div_class_ext: # cell
+        if "table-cell" in div_class_ext:  # cell
             self._in_cell = True
-        if 'table-row' in div_class_ext: # cell
+        if "table-row" in div_class_ext:  # cell
             self._in_row = True
-            if 'divider' in div_class_ext:
+            if "divider" in div_class_ext:
                 self._in_row_divider = True
-
 
     def handle_endtag(self, tag):
         if self._in_cell:
@@ -43,7 +43,7 @@ class MyHTMLParser(HTMLParser):
             self._in_row = False
             if not self._in_row_divider:
                 self._current_table.append(self._current_row)
-            self._current_row = []        
+            self._current_row = []
             if self._in_row_divider:
                 self._in_row_divider = False
         elif self._in_table:

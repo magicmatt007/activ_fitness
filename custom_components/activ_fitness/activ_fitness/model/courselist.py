@@ -2,7 +2,7 @@
 
 import json
 
-from .course_x import Course
+from .course import Course
 
 
 class Courselist:

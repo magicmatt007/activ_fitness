@@ -2,7 +2,7 @@
 
 import json
 
-from .center_x import Center
+from .center import Center
 
 
 class Centers:
