@@ -18,13 +18,13 @@ import urllib.parse
 import aiohttp
 
 from .MyHTMLParser import MyHTMLParser  # Parser to scrape checkins from HTML table
-from .model.bookings import Bookings
-from .model.center import Center
-from .model.centers import Centers
-from .model.checkin import Checkin
-from .model.checkins import Checkins
-from .model.course import Course
-from .model.courselist import Courselist
+from .model.bookings_x import Bookings
+from .model.center_x import Center
+from .model.centers_x import Centers
+from .model.checkin_x import Checkin
+from .model.checkins_x import Checkins
+from .model.course_x import Course
+from .model.courselist_x import Courselist
 
 mylogger = logging.getLogger("mylogger")
 mylogger.setLevel(logging.DEBUG)

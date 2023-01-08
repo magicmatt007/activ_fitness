@@ -2,7 +2,7 @@
 
 import json
 
-from .course import Course
+from .course_x import Course
 
 
 class Bookings:
