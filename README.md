@@ -1,103 +1,90 @@
-# Notice
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=for-the-badge)](https://github.com/hacs/integration)
+![GitHub release (latest by date)](https://img.shields.io/github/v/release/magicmatt007/activ_fitness?color=41BDF5&style=for-the-badge)
+![Integration Usage](https://img.shields.io/badge/dynamic/json?color=41BDF5&style=for-the-badge&logo=home-assistant&label=usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.activ_fitness.total)
 
-The component and platforms in this repository are not meant to be used by a
-user, but as a "blueprint" that custom component developers can build
-upon, to make more awesome stuff.
+# Activ Fitness Integration for Home Assistant
 
-HAVE FUN! 😎
+Note: You need to have an active membership to use this component.
 
-## Why?
+This component lets you see the when your favorite courses in your favorite fitness locations are scheduled. You can also book these courses.
 
-This is simple, by having custom_components look (README + structure) the same
-it is easier for developers to help each other and for users to start using them.
+It provides also information about your studio check-ins.
 
-If you are a developer and you want to add things to this "blueprint" that you think more
-developers will have use for, please open a PR to add it :)
-
-## What?
-
-This repository contains multiple files, here is a overview:
-
-File | Purpose
--- | --
-`.devcontainer/*` | Used for development/testing with VSCODE, more info in the readme file in that dir.
-`.github/ISSUE_TEMPLATE/feature_request.md` | Template for Feature Requests
-`.github/ISSUE_TEMPLATE/issue.md` | Template for issues
-`.vscode/tasks.json` | Tasks for the devcontainer.
-`custom_components/integration_blueprint/translations/*` | [Translation files.](https://developers.home-assistant.io/docs/internationalization/custom_integration)
-`custom_components/integration_blueprint/__init__.py` | The component file for the integration.
-`custom_components/integration_blueprint/api.py` | This is a sample API client.
-`custom_components/integration_blueprint/binary_sensor.py` | Binary sensor platform for the integration.
-`custom_components/integration_blueprint/config_flow.py` | Config flow file, this adds the UI configuration possibilities.
-`custom_components/integration_blueprint/const.py` | A file to hold shared variables/constants for the entire integration.
-`custom_components/integration_blueprint/manifest.json` | A [manifest file](https://developers.home-assistant.io/docs/en/creating_integration_manifest.html) for Home Assistant.
-`custom_components/integration_blueprint/sensor.py` | Sensor platform for the integration.
-`custom_components/integration_blueprint/switch.py` | Switch sensor platform for the integration.
-`tests/__init__.py` | Makes the `tests` folder a module.
-`tests/conftest.py` | Global [fixtures](https://docs.pytest.org/en/stable/fixture.html) used in tests to [patch](https://docs.python.org/3/library/unittest.mock.html#unittest.mock.patch) functions.
-`tests/test_api.py` | Tests for `custom_components/integration_blueprint/api.py`.
-`tests/test_config_flow.py` | Tests for `custom_components/integration_blueprint/config_flow.py`.
-`tests/test_init.py` | Tests for `custom_components/integration_blueprint/__init__.py`.
-`tests/test_switch.py` | Tests for `custom_components/integration_blueprint/switch.py`.
-`CONTRIBUTING.md` | Guidelines on how to contribute.
-`example.png` | Screenshot that demonstrate how it might look in the UI.
-`info.md` | An example on a info file (used by [hacs][hacs]).
-`LICENSE` | The license file for the project.
-`README.md` | The file you are reading now, should contain info about the integration, installation and configuration instructions.
-`requirements.txt` | Python packages used by this integration.
-`requirements_dev.txt` | Python packages used to provide [IntelliSense](https://code.visualstudio.com/docs/editor/intellisense)/code hints during development of this integration, typically includes packages in `requirements.txt` but may include additional packages
-`requirements_test.txt` | Python packages required to run the tests for this integration, typically includes packages in `requirements_dev.txt` but may include additional packages
-
-## How?
-
-If you want to use all the potential and features of this blueprint template you
-should use Visual Studio Code to develop in a container. In this container you
-will have all the tools to ease your python development and a dedicated Home
-Assistant core instance to run your integration. See `.devcontainer/README.md` for more information.
-
-If you need to work on the python library in parallel of this integration
-(`sampleclient` in this example) there are different options. The following one seems
-easy to implement:
-
-- Create a dedicated branch for your python library on a public git repository (example: branch
-`dev` on `https://github.com/ludeeus/sampleclient`)
-- Update in the `manifest.json` file the `requirements` key to point on your development branch
-( example: `"requirements": ["git+https://github.com/ludeeus/sampleclient.git@dev#devp==0.0.1beta1"]`)
-- Each time you need to make a modification to your python library, push it to your
-development branch and increase the number of the python library version in `manifest.json` file
-to ensure Home Assistant update the code of the python library. (example `"requirements": ["git+https://...==0.0.1beta2"]`).
+## Features
 
 
-***
-README content if this was a published component:
-***
+### Senors
 
-# integration_blueprint
+### Front End:
+![My Image](img/screenshot.png)
 
-[![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE)
 
-[![hacs][hacsbadge]][hacs]
-![Project Maintenance][maintenance-shield]
-[![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
+Using Home Assitant's `tile` card you can have a very compact UI for displaying the upcoming courses. By clicking on the circles, you can book / unbook a course. Please give it a couple of seconds to execute the booking and update the UI.
 
-[![Discord][discord-shield]][discord]
-[![Community Forum][forum-shield]][forum]
+``` YAML
+type: vertical-stack
+title: 'Upcoming courses:'
+cards:
+  - type: tile
+    entity: binary_sensor.activ_fitness_course_0_booked
+    icon_tap_action:
+      action: call-service
+      service: activ_fitness.toggle_booking
+      data: {}
+      target:
+        entity_id: binary_sensor.activ_fitness_course_0_booked
+    color: green
+  - type: tile
+    entity: binary_sensor.activ_fitness_course_1_booked
+    icon_tap_action:
+      action: call-service
+      service: activ_fitness.toggle_booking
+      data: {}
+      target:
+        entity_id: binary_sensor.activ_fitness_course_1_booked
+    color: green
+  - type: tile
+    entity: binary_sensor.activ_fitness_course_2_booked
+    icon_tap_action:
+      action: call-service
+      service: activ_fitness.toggle_booking
+      data: {}
+      target:
+        entity_id: binary_sensor.activ_fitness_course_2_booked
+    color: green
+  - type: tile
+    entity: binary_sensor.activ_fitness_course_3_booked
+    icon_tap_action:
+      action: call-service
+      service: activ_fitness.toggle_booking
+      data: {}
+      target:
+        entity_id: binary_sensor.activ_fitness_course_3_booked
+    color: green
+  - type: tile
+    entity: binary_sensor.activ_fitness_course_4_booked
+    icon_tap_action:
+      action: call-service
+      service: activ_fitness.toggle_booking
+      data: {}
+      target:
+        entity_id: binary_sensor.activ_fitness_course_4_booked
+    color: green
 
-_Component to integrate with [integration_blueprint][integration_blueprint]._
 
-**This component will set up the following platforms.**
+```
 
-Platform | Description
--- | --
-`binary_sensor` | Show something `True` or `False`.
-`sensor` | Show info from blueprint API.
-`switch` | Switch something `True` or `False`.
+## Usage
 
-![example][exampleimg]
+Lovelace example: TODO
+
 
 ## Installation
+### Option 1 (Recommended)
+
+Use HACS. This ensures, you receive notifications about newer versions.
+
+### Option 2
 
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
 2. If you do not have a `custom_components` directory (folder) there, you need to create it.
@@ -107,23 +94,24 @@ Platform | Description
 6. Restart Home Assistant
 7. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Integration blueprint"
 
-Using your HA configuration directory (folder) as a starting point you should now also have this:
+Using your HA configuration directory (folder) as a starting point you should now also something similar to this (Note: _Not all actual files are listed here_):
 
 ```text
-custom_components/integration_blueprint/translations/en.json
-custom_components/integration_blueprint/translations/nb.json
-custom_components/integration_blueprint/translations/sensor.nb.json
-custom_components/integration_blueprint/__init__.py
-custom_components/integration_blueprint/api.py
-custom_components/integration_blueprint/binary_sensor.py
-custom_components/integration_blueprint/config_flow.py
-custom_components/integration_blueprint/const.py
-custom_components/integration_blueprint/manifest.json
-custom_components/integration_blueprint/sensor.py
-custom_components/integration_blueprint/switch.py
+custom_components/activ_fitness/translations/en.json
+custom_components/activ_fitness/__init__.py
+custom_components/activ_fitness/api.py
+custom_components/activ_fitness/binary_sensor.py
+custom_components/activ_fitness/button.py
+custom_components/activ_fitness/config_flow.py
+custom_components/activ_fitness/const.py
+custom_components/activ_fitness/manifest.json
+custom_components/activ_fitness/sensor.py
 ```
 
 ## Configuration is done in the UI
+
+You need to enter the IP address of your V-Zug appliance. Typically, you would log into your router and look under connected devices. Once you found it, make sure you assign it as a static IP address. Otherwise, it might change at some point and break the link to the integration.
+
 
 <!---->
 
@@ -131,13 +119,15 @@ custom_components/integration_blueprint/switch.py
 
 If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
 
+![license-shield]
+
 ***
 
 [integration_blueprint]: https://github.com/custom-components/integration_blueprint
 [buymecoffee]: https://www.buymeacoffee.com/ludeeus
 [buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
 [commits-shield]: https://img.shields.io/github/commit-activity/y/custom-components/blueprint.svg?style=for-the-badge
-[commits]: https://github.com/custom-components/integration_blueprint/commits/master
+[commits]: https://github.com/magicmatt007/v_zug/commits/master
 [hacs]: https://github.com/custom-components/hacs
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
 [discord]: https://discord.gg/Qa5fW2R

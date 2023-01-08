@@ -20,7 +20,7 @@ import pytz
 
 from . import MyUpdateCoordinator
 from .activ_fitness.api_class import Api
-from .bases_sensor import BaseSensorCourse
+from .base_sensors import BaseSensorCourse
 from .const import CHECKINS_DEVICE_ID, COURSES_SHOWN, DOMAIN, SensorType
 
 _LOGGER = logging.getLogger(__name__)

@@ -9,7 +9,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import MyUpdateCoordinator
 from .activ_fitness.api_class import Api
-from .bases_sensor import BaseEntityCourse
+from .base_sensors import BaseEntityCourse
 from .const import COURSENAME, COURSES_SHOWN, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)

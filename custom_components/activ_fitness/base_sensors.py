@@ -8,7 +8,14 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import MyUpdateCoordinator
 from .activ_fitness.api_class import Api
-from .const import COURSENAME, DOMAIN, MANUFACTURER, SENSOR_NAMES, SUGGESTED_AREA
+from .const import (
+    COURSENAME,
+    DOMAIN,
+    ENTITY_ICONS,
+    MANUFACTURER,
+    SENSOR_NAMES,
+    SUGGESTED_AREA,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -72,4 +79,4 @@ class BaseSensorCourse(BaseEntityCourse):
             f"{Platform.SENSOR}.{DOMAIN}_{COURSENAME.lower()}_{course_no}_{sensor_type}"
         )
         self._attr_name = f"{SENSOR_NAMES[sensor_type]}"
-        # self._attr_name = f"{COURSENAME} {course_no} {SENSOR_NAMES[sensor_type]}"
+        self._attr_icon = f"{ENTITY_ICONS[sensor_type]}"

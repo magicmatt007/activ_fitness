@@ -2,27 +2,19 @@
 from __future__ import annotations
 
 import logging
-from homeassistant.const import Platform
-from homeassistant.helpers import entity_platform
 
-
-from homeassistant.components.binary_sensor import (
-    BinarySensorEntity,
-)
-
+from homeassistant.components.binary_sensor import BinarySensorEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-)
 from . import MyUpdateCoordinator
 from .activ_fitness.api_class import Api
-
-from .const import DOMAIN, COURSENAME, SensorType, COURSES_SHOWN, LOCATION_PREFIX
-from .bases_sensor import BaseSensorCourse
-
+from .base_sensors import BaseSensorCourse
+from .const import COURSENAME, COURSES_SHOWN, DOMAIN, LOCATION_PREFIX, SensorType
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -108,6 +100,12 @@ class CourseBinarySensor(BaseSensorCourse, BinarySensorEntity):
         return data.is_booked(self._course_no)
 
     @property
+    def state(self):
+        if self.is_on:
+            return "booked"
+        return "not booked"
+
+    @property
     def name(self):
         """Return the name of the sensor."""
         # if self.coordinator.data is not None:
@@ -116,7 +114,11 @@ class CourseBinarySensor(BaseSensorCourse, BinarySensorEntity):
         data: Api = self.coordinator.data
         course = data.courses[self._course_no]
         _booked_str = "BOOKED" if self.is_on else "NOT BOOKED"
-        return f'{course.title} {course.start_str} in {course.center_name.replace(LOCATION_PREFIX,"")} with {course.instructor} - {_booked_str}'
+        _bookable_str = (
+            "BOOKABLE" if data.courses[self._course_no].bookable else "NOT BOOKABLE"
+        )
+        # return f'{course.title} {course.start_str} in {course.center_name.replace(LOCATION_PREFIX,"")} with {course.instructor} - {_booked_str}'
+        return f'{course.title} {course.start_str} in {course.center_name.replace(LOCATION_PREFIX,"")} with {course.instructor} - {_bookable_str}'
 
     async def book(self):
         """Book course."""

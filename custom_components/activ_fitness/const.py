@@ -42,3 +42,16 @@ SENSOR_NAMES = {
     SensorType.BOOKABLE: "Bookable",
     SensorType.BOOKED: "Booked",
 }
+
+ENTITY_ICONS = {
+    SensorType.TITLE: "mdi:message-outline",
+    SensorType.START: "mdi:clock-outline",
+    SensorType.INSTRUCTOR: "mdi:account",
+    SensorType.LOCATION: "mdi:map-marker",
+    SensorType.MAX_PERSONS: "mdi:account-card",
+    SensorType.ACTUAL_PERSONS: "mdi:account-card-outline",
+    SensorType.BOOKING_LEVEL: "mdi:gauge-full",
+    SensorType.COURSE_ID: "mdi:identifier",
+    SensorType.BOOKABLE: "mdi:account-edit",
+    SensorType.BOOKED: "mdi:account-check",
+}
