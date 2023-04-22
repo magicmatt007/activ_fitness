@@ -93,9 +93,9 @@ async def async_setup_entry(
         ]
 
     new_entities = [
-        CheckinsTotalSensor(coordinator=coordinator),
-        CheckinsTotalTotalSensor(coordinator=coordinator),
-        LastCheckinSensor(coordinator=coordinator),
+        # CheckinsTotalSensor(coordinator=coordinator),             #temporarily disabled
+        # CheckinsTotalTotalSensor(coordinator=coordinator), #temporarily disabled
+        # LastCheckinSensor(coordinator=coordinator), #temporarily disabled
     ]
 
     for i in range(COURSES_SHOWN):

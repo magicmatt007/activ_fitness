@@ -99,7 +99,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "coordinator": coordinator,
     }
 
-    hass.config_entries.async_setup_platforms(entry, PLATFORMS)
+    # hass.config_entries.async_setup_platforms(entry, PLATFORMS)
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
 
@@ -161,14 +163,20 @@ class MyUpdateCoordinator(DataUpdateCoordinator):
             # selected_course_names = ["BODYPUMP® 55'"]
 
             async with async_timeout.timeout(15):
+                _LOGGER.warning("--1--")
                 await self._api.login(user=self.username, pwd=self.password)
+                _LOGGER.warning("--2--")
                 await self._api.get_center_ids()
+                _LOGGER.warning("--3--")
                 await self._api.get_course_list(
                     coursetitles=self.selected_course_names,
                     center_ids=self.selected_centers,
                 )
+                _LOGGER.warning("--4--")
                 await self._api.get_bookings()
-                await self._api.get_checkins()
+                _LOGGER.warning("--5--")
+                # await self._api.get_checkins() # temporarily disabled
+                _LOGGER.warning("--6--")
                 return self._api
 
         # except ApiAuthError as err:

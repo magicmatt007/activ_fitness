@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import ssl
 
 from activ_fitness.api_class import Api
@@ -8,6 +9,13 @@ import my_secrets
 
 #####################################################
 # Playground to try API interactions:
+
+
+# logging.basicConfig(level=logging.DEBUG)
+# logging.debug("This will get logged")
+
+logger = logging.getLogger("mylogger")
+logger.setLevel(logging.DEBUG)
 
 
 async def main():
@@ -74,7 +82,10 @@ async def main():
                 )  # requires a login
 
                 print("Book a course:")
-                courselist = await _api.get_course_list(coursetitles=["BODYPUMP® 55'"])
+                # courselist = await _api.get_course_list(coursetitles=["BODYPUMP® 55'"])
+                courselist = await _api.get_course_list(
+                    center_ids=[33, 23, 54], coursetitles=["BODYPUMP® 55'"]
+                )
                 for index, c in enumerate(courselist.courses_bookable):
                     print(index, c)
 
@@ -84,7 +95,7 @@ async def main():
                 try:
                     print("1")
                     await _api.book_course(
-                        access_token=access_token,
+                        # access_token=access_token,
                         course_id=courselist.courses_bookable[
                             int(select)
                         ].course_id_tac,

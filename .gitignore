@@ -4,3 +4,4 @@ venv
 .venv
 .coverage
 .idea
+my_secrets.py
