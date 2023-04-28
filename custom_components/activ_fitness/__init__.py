@@ -175,7 +175,10 @@ class MyUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning("--4--")
                 await self._api.get_bookings()
                 _LOGGER.warning("--5--")
-                # await self._api.get_checkins() # temporarily disabled
+                await self._api.loginCheckins(
+                    user=self.username, pwd=self.password
+                )  # temporarily disabled
+                await self._api.get_checkins()  # temporarily disabled
                 _LOGGER.warning("--6--")
                 return self._api
 
