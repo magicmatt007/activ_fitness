@@ -88,10 +88,9 @@ class Api:
         code_challenge = code_challenge.replace("=", "")
         return code_challenge, code_verifier
 
-    async def login(self, user, pwd):
+    async def loginStep10_20(self, user, pwd):
         """
-        Login with user credentials.
-        Returns an access token for api requests, which require one
+        Login step 10 & 20.
         """
 
         # Step 10: Migros Login GET csrf
@@ -105,15 +104,59 @@ class Api:
         for cookie in cookie_jar:
             if cookie.key == "CSRF":
                 csrf = cookie.value
+        mylogger.debug("status: %s", resp.status)
+        mylogger.debug("csrf: %s", csrf)
 
         # Step 20: Migros Login POST credentials
         url = "https://login.migros.ch/login"
         mylogger.debug("\nStep 20 %s", url)
-        payload = {"_csrf": csrf, "username": user, "password": pwd}
+        payload = {
+            "_csrf": csrf,
+            "username": user,
+            "password": pwd,
+        }  # Chrome also sends "captcha"
+
         resp = await self.session.post(
             url, data=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
+        mylogger.debug("status: %s", resp.status)
         mylogger.debug(resp)
+
+    async def loginCheckins(self, user, pwd):
+        """
+        Login with user credentials.
+        Rewritten to get access to Checkins
+        """
+
+        await self.loginStep10_20(user, pwd)
+
+        # Step 30: Migros Login GET
+        url = "https://login.migros.ch/"
+        resp = await self.session.get(
+            url, allow_redirects=False, ssl_context=self.ssl_context
+        )
+        mylogger.debug("\nStep 30 %s", url)
+        mylogger.debug("status: %s", resp.status)
+
+        # Step 40: Migros Login account GET
+        url = "https://login.migros.ch/account"
+        resp = await self.session.get(
+            url, allow_redirects=False, ssl_context=self.ssl_context
+        )
+        mylogger.debug("\nStep 40 %s", url)
+        mylogger.debug("status: %s", resp.status)
+        mylogger.debug(resp)
+        # mylogger.debug("resp.content")
+        # mylogger.debug(await resp.content.read())
+        mylogger.debug(resp.headers)
+
+    async def login(self, user, pwd):
+        """
+        Login with user credentials.
+        Returns an access token for api requests, which require one
+        """
+
+        await self.loginStep10_20(user, pwd)
 
         # Step 30: Migros OAuth2 authorize: get code and state for client_id and code_challenge
         url = "https://login.migros.ch/oauth2/authorize"
@@ -136,6 +179,7 @@ class Api:
         resp = await self.session.get(
             url, params=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
+        mylogger.debug("status: %s", resp.status)
         mylogger.debug(resp)
         try:
             location = resp.headers["Location"]
@@ -161,11 +205,14 @@ class Api:
         resp = await self.session.post(
             url, data=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
+        mylogger.debug("status: %s", resp.status)
         mylogger.debug(resp)
 
         content_lst = await resp.json()
         id_token = content_lst["id_token"]
         access_token = content_lst["access_token"]
+
+        mylogger.debug("access_token %s", access_token)
 
         # Step 50: Migros oauth2 authorize with token and client_id activfitness
         url = "https://login.migros.ch/oauth2/authorize"
@@ -188,6 +235,7 @@ class Api:
         resp = await self.session.get(
             url, params=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
+        mylogger.debug("status: %s", resp.status)
         mylogger.debug(resp)
 
         self._access_token = access_token
@@ -310,29 +358,36 @@ class Api:
         self.bookings = bookings.courses
         return bookings
 
-    async def get_checkins(self, from_="2022-01-01", to_="2022-11-31"):
+    async def get_checkins(self, from_="2022-11-23", to_="2022-11-31"):
         """
         Returns a Checkins object, which contains all check ins in the given perdiod
         from:
         to:
         """
         url = "https://shop-schlieren.activfitness.ch/account/dashboard/checkins/"
+        #      https://shop-schlieren.activfitness.ch/account/dashboard/checkins/?from=2022-11-23&to=2023-04-23&memberCategoryId=11215&contract=1337719&skipAccessReservations=1&_=1682251126640
         mylogger.debug("\nget_checkings %s to %s: %s", from_, to_, url)
 
         payload = {
             "from": from_,
             "to": to_,
             "memberCategoryId": "11215",
+            "contract": "1337719",
             "skipAccessReservations": "1",
-            "_": "1669453211792",
+            "_": "1682251126640",
+            # "_": "1669453211792",
         }
 
         resp = await self.session.get(
             url, params=payload, allow_redirects=True, ssl_context=self.ssl_context
         )
+
+        mylogger.debug("status: %s", resp.status)
         mylogger.debug(resp)
 
         parser = MyHTMLParser()
+        body = await resp.text()
+        # mylogger.debug(body)
         parser.feed(await resp.text())
         table = parser.tables[0]
         checkins = Checkins.from_table(table)

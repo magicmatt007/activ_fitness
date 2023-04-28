@@ -35,8 +35,9 @@ async def main():
         print("4: List bookings")
         print("5: Book a course")
         print("6: Cancel a course")
-        print("7: List checkins")
+        print("7: List checkins - broken")
         print("8: Test Api object")
+        print("9: List checkins - repaireed login")
         print("x: Exit")
         selection = input("Your choice: ")
 
@@ -133,8 +134,10 @@ async def main():
                 access_token = await _api.login(
                     user=my_secrets.user, pwd=my_secrets.pwd
                 )  # requires a login
-                from_ = "2020-01-01"
-                to_ = "2022-12-31"
+                # from_ = "2020-01-01"
+                from_ = "2022-11-23"
+                # to_ = "2022-12-31"
+                to_ = "2023-04-23"
 
                 checkins = await _api.get_checkins(from_=from_, to_=to_)
 
@@ -196,8 +199,22 @@ async def main():
                 print(_api.bookings)
                 print("\nCheckins:")
                 print(_api.checkins)
+            case "9":
+                await _api.loginCheckins(user=my_secrets.user, pwd=my_secrets.pwd)
 
+                from_ = "2022-11-23"
+                # to_ = "2022-12-31"
+                to_ = "2023-04-23"
+
+                checkins = await _api.get_checkins(from_=from_, to_=to_)
+
+                print(f"\nVisits between {from_} and {to_}: {_api.checkins_in_period}")
+                print(f"Last Checkin: {_api.last_checkin}")
+                # print(checkins.checkins)
+                for c in checkins.checkins:
+                    print(c)
             case "x":
+
                 break
             case _:
                 print("Invalid selection")
