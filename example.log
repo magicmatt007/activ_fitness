@@ -1,6 +1,0 @@
-DEBUG:asyncio:Using selector: EpollSelector
-ERROR:asyncio:Unclosed client session
-client_session: <aiohttp.client.ClientSession object at 0x7fc746cd38b0>
-ERROR:asyncio:Unclosed connector
-connections: ['[(<aiohttp.client_proto.ResponseHandler object at 0x7fc746672680>, 2643.995107115), (<aiohttp.client_proto.ResponseHandler object at 0x7fc7466aca00>, 2645.826933815)]', '[(<aiohttp.client_proto.ResponseHandler object at 0x7fc7466ad360>, 2645.727599115)]']
-connector: <aiohttp.connector.TCPConnector object at 0x7fc746cd3940>
