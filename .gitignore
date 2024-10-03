@@ -16,4 +16,6 @@ coverage.xml
 config/*
 !config/configuration.yaml
 
+.venv
+
 my_secrets.py
