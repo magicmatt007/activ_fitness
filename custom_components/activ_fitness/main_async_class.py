@@ -14,8 +14,41 @@ import my_secrets
 # logging.basicConfig(level=logging.DEBUG)
 # logging.debug("This will get logged")
 
+class CustomFormatter(logging.Formatter):
+
+    grey = "\x1b[38;20m"
+    yellow = "\x1b[33;20m"
+    red = "\x1b[31;20m"
+    bold_red = "\x1b[31;1m"
+    reset = "\x1b[0m"
+    # format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    # format = "%(levelname)s - %(message)s (%(filename)s:%(lineno)d)"
+    format = "%(message)s (%(filename)s:%(lineno)d)"
+
+    FORMATS = {
+        logging.DEBUG: grey + format + reset,
+        logging.INFO: grey + format + reset,
+        logging.WARNING: yellow + format + reset,
+        logging.ERROR: red + format + reset,
+        logging.CRITICAL: bold_red + format + reset
+    }
+
+    def format(self, record):
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+
 logger = logging.getLogger("mylogger")
 logger.setLevel(logging.DEBUG)
+
+# create console handler with a higher log level
+ch = logging.StreamHandler()
+ch.setLevel(logging.DEBUG)
+
+ch.setFormatter(CustomFormatter())
+
+logger.addHandler(ch)
 
 
 async def main():
@@ -77,7 +110,7 @@ async def main():
                 bookings = await _api.get_bookings()
                 print(bookings.courses)
             case "5":
-                #### Book a course example workflow:
+                # Book a course example workflow:
                 access_token = await _api.login(
                     user=my_secrets.user, pwd=my_secrets.pwd
                 )  # requires a login
@@ -109,7 +142,7 @@ async def main():
                 except Exception as e:
                     print(f"Invalid selection {e} {e.with_traceback}")
             case "6":
-                #### Cancel a course example workflow:
+                # Cancel a course example workflow:
                 access_token = await _api.login(
                     user=my_secrets.user, pwd=my_secrets.pwd
                 )  # requires a login:
@@ -141,7 +174,8 @@ async def main():
 
                 checkins = await _api.get_checkins(from_=from_, to_=to_)
 
-                print(f"\nVisits between {from_} and {to_}: {_api.checkins_in_period}")
+                print(
+                    f"\nVisits between {from_} and {to_}: {_api.checkins_in_period}")
                 print(f"Last Checkin: {_api.last_checkin}")
                 # print(checkins.checkins)
                 for c in checkins.checkins:
@@ -208,7 +242,8 @@ async def main():
 
                 checkins = await _api.get_checkins(from_=from_, to_=to_)
 
-                print(f"\nVisits between {from_} and {to_}: {_api.checkins_in_period}")
+                print(
+                    f"\nVisits between {from_} and {to_}: {_api.checkins_in_period}")
                 print(f"Last Checkin: {_api.last_checkin}")
                 # print(checkins.checkins)
                 for c in checkins.checkins:
