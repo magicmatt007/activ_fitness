@@ -30,9 +30,9 @@ from .my_html_parser import MyHTMLParser
 mylogger = logging.getLogger("mylogger")
 mylogger.setLevel(logging.DEBUG)
 # mylogger.setLevel(logging.INFO)
-console_handler = logging.StreamHandler()
-mylogger.addHandler(console_handler)
-logging.basicConfig(level=logging.DEBUG)
+# console_handler = logging.StreamHandler()
+# mylogger.addHandler(console_handler)
+# logging.basicConfig(level=logging.DEBUG)
 
 
 class Api:
@@ -125,6 +125,16 @@ class Api:
         mylogger.debug("status: %s", resp.status)
         mylogger.debug(resp)
 
+    def _extract_csrf(self, text):
+        search = 'meta name="_csrf"'
+        p = text.find(search)
+        p2 = text.find('content', p)
+        csrf_start = text.find('"', p2)+1
+        csrf_end = text.find('"', csrf_start+1)
+
+        csrf_form = text[csrf_start:csrf_end]
+        return csrf_form
+
     async def loginStep10_20(self, user, pwd):
         """
         Login step 10 & 20.
@@ -133,10 +143,10 @@ class Api:
         # Step 10: Migros Login GET csrf
         # url = "https://login.migros.ch/login"
         url = "https://login.migros.ch/login/email"  # new url 2.10.24  TODO: test
+        mylogger.debug("\nStep 10 GET %s", url)
         resp = await self.session.get(
             url, allow_redirects=False, ssl_context=self.ssl_context
         )
-        mylogger.debug("\nStep 10 %s", url)
         cookie_jar = self.session.cookie_jar
         csrf = ""
         for cookie in cookie_jar:
@@ -145,20 +155,14 @@ class Api:
         mylogger.debug("status: %s", resp.status)
         mylogger.debug("csrf: %s", csrf)
 
-        # Extract the csrf from the HTML form:
-        c = await resp.text()
-        search = 'meta name="_csrf"'
-        p = c.find(search)
-        p2 = c.find('content', p)
-        csrf_start = c.find('"', p2)+1
-        csrf_end = c.find('"', csrf_start+1)
-
-        csrf_form = c[csrf_start:csrf_end]
+        # Extract the csrf from the HTML code:
+        text = await resp.text()
+        csrf_form = self._extract_csrf(text)
         mylogger.debug("csrf_form: %s", csrf_form)
 
         # Step 20: Migros Login POST credentials email
         url = "https://login.migros.ch/login/email"
-        mylogger.debug("\nStep 20 %s", url)
+        mylogger.debug("\nStep 20 POST %s", url)
         payload = {
             "_csrf": csrf_form,
             "email": user,
@@ -167,46 +171,88 @@ class Api:
         resp = await self.session.post(
             url, data=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
+        # Extract the csrf from the HTML code:
+        text = await resp.text()
+        csrf_form = self._extract_csrf(text)
+        mylogger.debug("csrf_form: %s", csrf_form)
+
         location = resp.headers["Location"]
         mylogger.debug("location: %s", location)
         mylogger.debug("status: %s", resp.status)
         mylogger.debug(resp)
 
+        # Step 22: Migros Login GET password
+        url = "https://login.migros.ch/login/password"
+        mylogger.debug("\nStep 22 GET %s", url)
+        resp = await self.session.get(
+            url, allow_redirects=False, ssl_context=self.ssl_context
+        )
+        mylogger.debug("status: %s", resp.status)
+
+        # Extract the csrf from the HTML code:
+        text = await resp.text()
+        csrf_form = self._extract_csrf(text)
+        mylogger.debug("csrf_form: %s", csrf_form)
+
         # Step 25: Migros Login POST credentials pwd
         url = "https://login.migros.ch/login/password"
-        mylogger.debug("\nStep 25 %s", url)
+        mylogger.debug("\nStep 25 POST %s", url)
         payload = {
-            "_csrf": csrf,
+            "_csrf": csrf_form,
             "password": pwd,
         }  # Chrome also sends "captcha"
 
         resp = await self.session.post(
             url, data=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
+        mylogger.debug("status: %s", resp.status)
         location = resp.headers["Location"]
         mylogger.debug("location: %s", location)
-        mylogger.debug("status: %s", resp.status)
         mylogger.debug(resp)
 
         # Step 27: Migros Login Get account
-        # url = "https://login.migros.ch/account"
-        url = "https://account.migros.ch/account"
-        mylogger.debug("\nStep 27 %s", url)
-        payload = {
-            "_csrf": csrf,
-            "password": pwd,
-        }  # Chrome also sends "captcha"
+        url = "https://login.migros.ch/"
+        # url = "https://account.migros.ch/account"
+        mylogger.debug("\nStep 27 GET %s", url)
 
         resp = await self.session.get(
             url, allow_redirects=False, ssl_context=self.ssl_context
         )
+        mylogger.debug("status: %s", resp.status)
+        location = resp.headers["Location"]
+        mylogger.debug("location: %s", location)
+        mylogger.debug(resp)
+        # text = await resp.text()
+        # mylogger.debug("text: %s", text)
 
+        # Step 28: Migros Login GET
+        url = "https://login.migros.ch/account/"
+        blue = '\033[34m'
+        reset = '\033[0m'
+        msg = f"{blue}\nStep 28 GET{reset}"
+        mylogger.warning("\nStep 28 GET %s", url)
+        # mylogger.debug("%s %s", msg, url)
+        # mylogger.debug("\nStep 28 GET %s", url)
+        resp = await self.session.get(
+            url, allow_redirects=False, ssl_context=self.ssl_context
+        )
+        mylogger.debug("status: %s", resp.status)
+        location = resp.headers["Location"]
+        mylogger.debug("location: %s", location)
+
+        # Step 29: Migros Login Account GET
+        url = "https://account.migros.ch/account"
+        mylogger.debug("\nStep 29 GET %s", url)
+        resp = await self.session.get(
+            url, allow_redirects=False, ssl_context=self.ssl_context
+        )
+        mylogger.debug("status: %s", resp.status)
         # location = resp.headers["Location"]
         # mylogger.debug("location: %s", location)
-        mylogger.debug("status: %s", resp.status)
-        mylogger.debug(resp)
         text = await resp.text()
-        mylogger.debug("test: %s", text)
+        mylogger.debug("text: %s", text)
+        exit()
+        print()
 
     async def loginCheckins(self, user, pwd):
         """
