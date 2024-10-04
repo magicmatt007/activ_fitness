@@ -24,13 +24,14 @@ from .model.checkin import Checkin
 from .model.checkins import Checkins
 from .model.course import Course
 from .model.courselist import Courselist
-from .my_html_parser import MyHTMLParser  # Parser to scrape checkins from HTML table
+# Parser to scrape checkins from HTML table
+from .my_html_parser import MyHTMLParser
 
 mylogger = logging.getLogger("mylogger")
 mylogger.setLevel(logging.DEBUG)
-mylogger.setLevel(logging.INFO)
-console_handler = logging.StreamHandler()
-mylogger.addHandler(console_handler)
+# mylogger.setLevel(logging.INFO)
+# console_handler = logging.StreamHandler()
+# mylogger.addHandler(console_handler)
 # logging.basicConfig(level=logging.DEBUG)
 
 
@@ -81,38 +82,83 @@ class Api:
         """
         Helper to generate code challenge
         """
-        code_verifier = base64.urlsafe_b64encode(os.urandom(40)).decode("utf-8")
+        code_verifier = base64.urlsafe_b64encode(
+            os.urandom(40)).decode("utf-8")
         code_verifier = re.sub("[^a-zA-Z0-9]+", "", code_verifier)
         code_challenge = hashlib.sha256(code_verifier.encode("utf-8")).digest()
-        code_challenge = base64.urlsafe_b64encode(code_challenge).decode("utf-8")
+        code_challenge = base64.urlsafe_b64encode(
+            code_challenge).decode("utf-8")
         code_challenge = code_challenge.replace("=", "")
         return code_challenge, code_verifier
+
+    def _extract_csrf(self, body):
+        """Extract the csrf from the HTML code in the body."""
+        search = 'meta name="_csrf"'
+        p = body.find(search)
+        p2 = body.find('content', p)
+        csrf_start = body.find('"', p2)+1
+        csrf_end = body.find('"', csrf_start+1)
+
+        csrf_form = body[csrf_start:csrf_end]
+        return csrf_form
 
     async def loginStep10_20(self, user, pwd):
         """
         Login step 10 & 20.
+
+        (Updated to work again 4.10.2024)
         """
 
+        #
         # Step 10: Migros Login GET csrf
-        url = "https://login.migros.ch/login"
+        url = "https://login.migros.ch/login/email"
+        mylogger.info("\nStep 10 GET %s", url)
         resp = await self.session.get(
             url, allow_redirects=False, ssl_context=self.ssl_context
         )
-        mylogger.debug("\nStep 10 %s", url)
-        cookie_jar = self.session.cookie_jar
-        csrf = ""
-        for cookie in cookie_jar:
-            if cookie.key == "CSRF":
-                csrf = cookie.value
-        mylogger.debug("status: %s", resp.status)
-        mylogger.debug("csrf: %s", csrf)
 
-        # Step 20: Migros Login POST credentials
-        url = "https://login.migros.ch/login"
-        mylogger.debug("\nStep 20 %s", url)
+        # Extract the csrf from the HTML code:
+        body = await resp.text()
+        csrf_form = self._extract_csrf(body)
+        mylogger.debug("csrf_form: %s", csrf_form)
+
+        #
+        # Step 11: Migros Login POST credentials email
+        url = "https://login.migros.ch/login/email"
+        mylogger.info("\nStep 11 POST %s", url)
         payload = {
-            "_csrf": csrf,
-            "username": user,
+            "_csrf": csrf_form,
+            "email": user,
+        }  # Chrome also sends "captcha"
+
+        resp = await self.session.post(
+            url, data=payload, allow_redirects=False, ssl_context=self.ssl_context
+        )
+
+        location = resp.headers["Location"]
+        mylogger.debug("location: %s", location)
+        mylogger.debug("status: %s", resp.status)
+
+        #
+        # Step 12: Migros Login GET password
+        url = "https://login.migros.ch/login/password"
+        mylogger.info("\nStep 12 GET %s", url)
+        resp = await self.session.get(
+            url, allow_redirects=False, ssl_context=self.ssl_context
+        )
+        mylogger.debug("status: %s", resp.status)
+
+        # Extract the csrf from the HTML code:
+        body = await resp.text()
+        csrf_form = self._extract_csrf(body)
+        mylogger.debug("csrf_form: %s", csrf_form)
+
+        #
+        #  Step 13: Migros Login POST credentials pwd
+        url = "https://login.migros.ch/login/password"
+        mylogger.info("\nStep 13 POST %s", url)
+        payload = {
+            "_csrf": csrf_form,
             "password": pwd,
         }  # Chrome also sends "captcha"
 
@@ -120,7 +166,45 @@ class Api:
             url, data=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
         mylogger.debug("status: %s", resp.status)
+        location = resp.headers["Location"]
+        mylogger.debug("location: %s", location)
         mylogger.debug(resp)
+
+        #
+        # Step 14: Migros Login Get account
+        url = "https://login.migros.ch/"
+        # url = "https://account.migros.ch/account"
+        mylogger.info("\nStep 14 GET %s", url)
+
+        resp = await self.session.get(
+            url, allow_redirects=False, ssl_context=self.ssl_context
+        )
+        mylogger.debug("status: %s", resp.status)
+        location = resp.headers["Location"]
+        mylogger.debug("location: %s", location)
+        mylogger.debug(resp)
+
+        #
+        # Step 15: Migros Login GET
+        url = "https://login.migros.ch/account/"
+        mylogger.info("\nStep 15 GET %s", url)
+        resp = await self.session.get(
+            url, allow_redirects=False, ssl_context=self.ssl_context
+        )
+        mylogger.debug("status: %s", resp.status)
+        location = resp.headers["Location"]
+        mylogger.debug("location: %s", location)
+
+        #
+        #  Step 16: Migros Login Account GET
+        url = "https://account.migros.ch/account"
+        mylogger.info("\nStep 16 GET %s", url)
+        resp = await self.session.get(
+            url, allow_redirects=False, ssl_context=self.ssl_context
+        )
+        mylogger.debug("status: %s", resp.status)
+        body = await resp.text()
+        mylogger.debug("text: %s", body)
 
     async def loginCheckins(self, user, pwd):
         """
@@ -187,8 +271,8 @@ class Api:
             query_dict = urllib.parse.parse_qs(parse_result.query)
             state = query_dict["state"][0]
             code = query_dict["code"][0]
-        except KeyError:
-            mylogger.error("No location in response. Exiting...")
+        except KeyError as e:
+            mylogger.error(f"No location in response. Exiting... {e}")
             exit()
 
         # Step 40: Migros Login oaut2 get Token for code, client_id, client_secret
@@ -393,7 +477,8 @@ class Api:
         checkins = Checkins.from_table(table)
 
         mylogger.debug(
-            "\nVisits between %s and %s: %s", from_, to_, len(checkins.checkins)
+            "\nVisits between %s and %s: %s", from_, to_, len(
+                checkins.checkins)
         )
 
         for checkin in checkins.checkins:
