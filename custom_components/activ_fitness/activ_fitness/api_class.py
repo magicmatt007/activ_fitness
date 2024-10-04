@@ -125,14 +125,15 @@ class Api:
         mylogger.debug("status: %s", resp.status)
         mylogger.debug(resp)
 
-    def _extract_csrf(self, text):
+    def _extract_csrf(self, body):
+        """Extract the csrf from the HTML code in the body."""
         search = 'meta name="_csrf"'
-        p = text.find(search)
-        p2 = text.find('content', p)
-        csrf_start = text.find('"', p2)+1
-        csrf_end = text.find('"', csrf_start+1)
+        p = body.find(search)
+        p2 = body.find('content', p)
+        csrf_start = body.find('"', p2)+1
+        csrf_end = body.find('"', csrf_start+1)
 
-        csrf_form = text[csrf_start:csrf_end]
+        csrf_form = body[csrf_start:csrf_end]
         return csrf_form
 
     async def loginStep10_20(self, user, pwd):
@@ -140,29 +141,23 @@ class Api:
         Login step 10 & 20.
         """
 
+        #
         # Step 10: Migros Login GET csrf
-        # url = "https://login.migros.ch/login"
         url = "https://login.migros.ch/login/email"  # new url 2.10.24  TODO: test
-        mylogger.debug("\nStep 10 GET %s", url)
+        mylogger.info("\nStep 10 GET %s", url)
         resp = await self.session.get(
             url, allow_redirects=False, ssl_context=self.ssl_context
         )
-        cookie_jar = self.session.cookie_jar
-        csrf = ""
-        for cookie in cookie_jar:
-            if cookie.key == "CSRF":
-                csrf = cookie.value
-        mylogger.debug("status: %s", resp.status)
-        mylogger.debug("csrf: %s", csrf)
 
         # Extract the csrf from the HTML code:
-        text = await resp.text()
-        csrf_form = self._extract_csrf(text)
+        body = await resp.text()
+        csrf_form = self._extract_csrf(body)
         mylogger.debug("csrf_form: %s", csrf_form)
 
-        # Step 20: Migros Login POST credentials email
+        #
+        # Step 11: Migros Login POST credentials email
         url = "https://login.migros.ch/login/email"
-        mylogger.debug("\nStep 20 POST %s", url)
+        mylogger.info("\nStep 11 POST %s", url)
         payload = {
             "_csrf": csrf_form,
             "email": user,
@@ -171,32 +166,33 @@ class Api:
         resp = await self.session.post(
             url, data=payload, allow_redirects=False, ssl_context=self.ssl_context
         )
-        # Extract the csrf from the HTML code:
-        text = await resp.text()
-        csrf_form = self._extract_csrf(text)
-        mylogger.debug("csrf_form: %s", csrf_form)
+        # header_items = resp.headers.items()
+        # mylogger.debug("header: %s", header_items)
+        # for h in header_items:
+        #     print(h)
 
         location = resp.headers["Location"]
         mylogger.debug("location: %s", location)
         mylogger.debug("status: %s", resp.status)
-        mylogger.debug(resp)
 
-        # Step 22: Migros Login GET password
+        #
+        # Step 12: Migros Login GET password
         url = "https://login.migros.ch/login/password"
-        mylogger.debug("\nStep 22 GET %s", url)
+        mylogger.info("\nStep 12 GET %s", url)
         resp = await self.session.get(
             url, allow_redirects=False, ssl_context=self.ssl_context
         )
         mylogger.debug("status: %s", resp.status)
 
         # Extract the csrf from the HTML code:
-        text = await resp.text()
-        csrf_form = self._extract_csrf(text)
+        body = await resp.text()
+        csrf_form = self._extract_csrf(body)
         mylogger.debug("csrf_form: %s", csrf_form)
 
-        # Step 25: Migros Login POST credentials pwd
+        #
+        #  Step 13: Migros Login POST credentials pwd
         url = "https://login.migros.ch/login/password"
-        mylogger.debug("\nStep 25 POST %s", url)
+        mylogger.info("\nStep 13 POST %s", url)
         payload = {
             "_csrf": csrf_form,
             "password": pwd,
@@ -210,10 +206,11 @@ class Api:
         mylogger.debug("location: %s", location)
         mylogger.debug(resp)
 
-        # Step 27: Migros Login Get account
+        #
+        # Step 14: Migros Login Get account
         url = "https://login.migros.ch/"
         # url = "https://account.migros.ch/account"
-        mylogger.debug("\nStep 27 GET %s", url)
+        mylogger.info("\nStep 14 GET %s", url)
 
         resp = await self.session.get(
             url, allow_redirects=False, ssl_context=self.ssl_context
@@ -225,14 +222,14 @@ class Api:
         # text = await resp.text()
         # mylogger.debug("text: %s", text)
 
-        # Step 28: Migros Login GET
+        # Step 15: Migros Login GET
         url = "https://login.migros.ch/account/"
         blue = '\033[34m'
         reset = '\033[0m'
-        msg = f"{blue}\nStep 28 GET{reset}"
-        mylogger.warning("\nStep 28 GET %s", url)
+        msg = f"{blue}\nStep 15 GET{reset}"
+        mylogger.info("\nStep 15 GET %s", url)
         # mylogger.debug("%s %s", msg, url)
-        # mylogger.debug("\nStep 28 GET %s", url)
+        # mylogger.debug("\nStep 15 GET %s", url)
         resp = await self.session.get(
             url, allow_redirects=False, ssl_context=self.ssl_context
         )
@@ -240,19 +237,17 @@ class Api:
         location = resp.headers["Location"]
         mylogger.debug("location: %s", location)
 
-        # Step 29: Migros Login Account GET
+        # Step 16: Migros Login Account GET
         url = "https://account.migros.ch/account"
-        mylogger.debug("\nStep 29 GET %s", url)
+        mylogger.info("\nStep 16 GET %s", url)
         resp = await self.session.get(
             url, allow_redirects=False, ssl_context=self.ssl_context
         )
         mylogger.debug("status: %s", resp.status)
         # location = resp.headers["Location"]
         # mylogger.debug("location: %s", location)
-        text = await resp.text()
-        mylogger.debug("text: %s", text)
-        exit()
-        print()
+        body = await resp.text()
+        mylogger.debug("text: %s", body)
 
     async def loginCheckins(self, user, pwd):
         """
