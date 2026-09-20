@@ -3,10 +3,10 @@ name: "Lint"
 on:
   push:
     branches:
-      - "main"
+      - "master"
   pull_request:
     branches:
-      - "main"
+      - "master"
 
 jobs:
   ruff:
@@ -19,7 +19,7 @@ jobs:
         - name: "Set up Python"
           uses: actions/setup-python@v4.7.1
           with:
-            python-version: "3.11"
+            python-version: "3.14"
             cache: "pip"
 
         - name: "Install requirements"

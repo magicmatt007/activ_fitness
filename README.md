@@ -88,18 +88,18 @@ Use HACS. This ensures, you receive notifications about newer versions.
 
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
 2. If you do not have a `custom_components` directory (folder) there, you need to create it.
-3. In the `custom_components` directory (folder) create a new folder called `integration_blueprint`.
-4. Download _all_ the files from the `custom_components/integration_blueprint/` directory (folder) in this repository.
+3. In the `custom_components` directory (folder) create a new folder called `activ_fitness`.
+4. Download _all_ the files from the `custom_components/activ_fitness/` directory (folder) in this repository, including the subdirectories.
 5. Place the files you downloaded in the new directory (folder) you created.
 6. Restart Home Assistant
-7. In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Integration blueprint"
+7. In the HA UI go to "Settings" -> "Devices & services", click "Add integration" and search for "Activ Fitness"
 
 Using your HA configuration directory (folder) as a starting point you should now also something similar to this (Note: _Not all actual files are listed here_):
 
 ```text
 custom_components/activ_fitness/translations/en.json
+custom_components/activ_fitness/activ_fitness/api_class.py
 custom_components/activ_fitness/__init__.py
-custom_components/activ_fitness/api.py
 custom_components/activ_fitness/binary_sensor.py
 custom_components/activ_fitness/button.py
 custom_components/activ_fitness/config_flow.py
@@ -110,8 +110,13 @@ custom_components/activ_fitness/sensor.py
 
 ## Configuration is done in the UI
 
-You need to enter the IP address of your V-Zug appliance. Typically, you would log into your router and look under connected devices. Once you found it, make sure you assign it as a static IP address. Otherwise, it might change at some point and break the link to the integration.
+1. Enter the login (email and password) of your Activ Fitness account. It is the Migros login you also use in the Activ Fitness app.
+2. Select the studios (centers) you are interested in.
+3. Select the courses you want to follow. If you select none, all courses of the selected studios are shown.
 
+The integration updates every 15 minutes. It stores your login and the sessions it needs in Home Assistant's configuration, so it does not have to log in again with your password every time.
+
+Tested with Home Assistant 2026.9.
 
 <!---->
 
@@ -123,19 +128,4 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 ***
 
-[integration_blueprint]: https://github.com/custom-components/integration_blueprint
-[buymecoffee]: https://www.buymeacoffee.com/ludeeus
-[buymecoffeebadge]: https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg?style=for-the-badge
-[commits-shield]: https://img.shields.io/github/commit-activity/y/custom-components/blueprint.svg?style=for-the-badge
-[commits]: https://github.com/magicmatt007/v_zug/commits/master
-[hacs]: https://github.com/custom-components/hacs
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=for-the-badge
-[discord]: https://discord.gg/Qa5fW2R
-[discord-shield]: https://img.shields.io/discord/330944238910963714.svg?style=for-the-badge
-[exampleimg]: example.png
-[forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=for-the-badge
-[forum]: https://community.home-assistant.io/
-[license-shield]: https://img.shields.io/github/license/custom-components/blueprint.svg?style=for-the-badge
-[maintenance-shield]: https://img.shields.io/badge/maintainer-Joakim%20Sørensen%20%40ludeeus-blue.svg?style=for-the-badge
-[releases-shield]: https://img.shields.io/github/release/custom-components/blueprint.svg?style=for-the-badge
-[releases]: https://github.com/custom-components/integration_blueprint/releases
+[license-shield]: https://img.shields.io/github/license/magicmatt007/activ_fitness.svg?style=for-the-badge

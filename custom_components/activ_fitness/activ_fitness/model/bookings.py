@@ -1,7 +1,5 @@
 """Bookings class"""
 
-import json
-
 from .course import Course
 
 
@@ -12,12 +10,12 @@ class Bookings:
         self.courses: list[Course] = courses
 
     @staticmethod
-    def from_json_str(json_str):
-        """ "Create instance from JSON."""
-        courses_lst = json.loads(json_str)
-
+    def from_groupx_json_list(classes_json_lst, centers_by_id):
+        """Create instance from GET /np/exerciser/{uuid}/schedule (a list of GroupXClass)."""
         courses_obj_lst: list[Course] = []
-        for course in courses_lst:
-            courses_obj_lst.append(Course.from_json(course))
+        for course in classes_json_lst:
+            club_uuid = course["brief"].get("clubUuid")
+            center_name = centers_by_id.get(club_uuid, club_uuid)
+            courses_obj_lst.append(Course.from_groupx_json(course, center_name))
 
         return Bookings(courses_obj_lst)

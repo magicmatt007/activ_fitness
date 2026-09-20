@@ -2,7 +2,10 @@
 
 
 class Center:
-    """Center class."""
+    """Center class.
+
+    center_id is a Netpulse club UUID (string), not the old numeric Migros center id.
+    """
 
     def __init__(self, center_id, title):
         self.center_id = center_id
@@ -19,6 +22,6 @@ class Center:
 
     @staticmethod
     def from_json(json_dct):
-        """Create instance from JSON."""
+        """Create instance from JSON (GET /np/company/children entry)."""
 
-        return Center(json_dct["centerId"], json_dct["title"])
+        return Center(json_dct["uuid"], json_dct["name"])

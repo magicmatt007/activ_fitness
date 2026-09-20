@@ -1,7 +1,5 @@
 """Courselist class."""
 
-import json
-
 from .course import Course
 
 
@@ -22,13 +20,9 @@ class Courselist:
         return [c for c in self.courses if c.bookable]
 
     @staticmethod
-    def from_json_str(json_str):
-        """Create instance from JSON."""
-        content_dct = json.loads(json_str)
-        courses_lst = content_dct["courses"]
-
-        courses_obj_lst = []
-        for course in courses_lst:
-            courses_obj_lst.append(Course.from_json(course))
-
+    def from_groupx_json_list(classes_json_lst, center_name):
+        """Create instance from a list of Netpulse GroupXClass JSON objects."""
+        courses_obj_lst = [
+            Course.from_groupx_json(course, center_name) for course in classes_json_lst
+        ]
         return Courselist(courses_obj_lst)

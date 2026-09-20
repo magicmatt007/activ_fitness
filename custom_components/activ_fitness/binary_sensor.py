@@ -180,15 +180,14 @@ class CourseBinarySensor(BaseSensorCourse, BinarySensorEntity):
             data.is_booked(self._course_no),
         )
 
-        if course.bookable:
-            if not data.is_booked(self._course_no):
-                # Book course:
-                await self.book()
-                _LOGGER.warning("Course %s booked via toggle")
-            else:
-                # Cancel course:
-                await self.cancel()
-                _LOGGER.warning("Course %s cancelled", course)
+        # Decide on "booked" first: "bookable" means "can be booked now" and is
+        # False for a course that is already booked, so it can't gate cancelling.
+        if data.is_booked(self._course_no):
+            await self.cancel()
+            _LOGGER.warning("Course %s cancelled via toggle", course)
+        elif course.bookable:
+            await self.book()
+            _LOGGER.warning("Course %s booked via toggle", course)
         else:
             _LOGGER.warning(
                 "Course %s not bookable yet (toggle). Try again later", course

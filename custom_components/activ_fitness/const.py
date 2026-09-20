@@ -1,18 +1,21 @@
 """Constants for the Activ Fitness integration."""
 
-# from enum import Enum
-from homeassistant.backports.enum import StrEnum
+from enum import StrEnum
 
 DOMAIN = "activ_fitness"
 UPDATE_INTERVAL = 60 * 15  # in seconds
 COURSENAME = "Course"
 COURSES_SHOWN = 5
 CHECKINS_DEVICE_ID = "checkins_id"
+CONF_MIGROS_TOKENS = "migros_tokens"  # refresh/id token persisted in the config entry
+CONF_CHECKINS_STATE = "checkins_state"  # Migros web session cookies for checkins
+# Checkins come from the shop website (see Api.get_checkins).
+CHECKINS_ENABLED = True
 
 
 MANUFACTURER = "Activ Fitness"
 SUGGESTED_AREA = "Activ Fitness"
-LOCATION_PREFIX = "ACTIV FITNESS "
+LOCATION_PREFIX = "ACTIV FITNESS, ACTIV FITNESS "
 
 
 class SensorType(StrEnum):
