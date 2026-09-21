@@ -13,7 +13,7 @@ from homeassistant.helpers.selector import selector
 import voluptuous as vol
 
 from .activ_fitness.api_class import Api
-from .const import DOMAIN
+from .const import CONF_MIGROS_TOKENS, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -126,9 +126,19 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         try:
             info = await validate_input(self.hass, user_input)
+            # Unlike the old (public) Migros course list, Netpulse's /classes
+            # endpoint requires an authenticated session - log in before fetching.
+            await _api.login(user=user_input["username"], pwd=user_input["password"])
+            center_ids = [centers_dict[c] for c in user_input["centers"]]
+            coursetitles_sorted = sorted(
+                (await _api.get_course_list(center_ids=center_ids)).coursetitles
+            )
         except CannotConnect:
             errors["base"] = "cannot_connect"
         except InvalidAuth:
+            errors["base"] = "invalid_auth"
+        except RuntimeError:
+            _LOGGER.exception("Login failed")
             errors["base"] = "invalid_auth"
         except Exception:  # pylint: disable=broad-except
             _LOGGER.exception("Unexpected exception")
@@ -136,13 +146,12 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         else:
             self.input_data = user_input
             _LOGGER.warning("Selected centers: %s", user_input["centers"])
-            center_ids = [centers_dict[c] for c in user_input["centers"]]
             _LOGGER.warning("Selected center ids: %s", center_ids)
             self.input_data.update({"center_ids": center_ids})
-
-            self._coursetitles_sorted = sorted(
-                (await _api.get_course_list(center_ids=center_ids)).coursetitles
-            )
+            # Keep the tokens from this login so the coordinator can refresh them
+            # later instead of logging in with the password again.
+            self.input_data[CONF_MIGROS_TOKENS] = _api.export_token_state()
+            self._coursetitles_sorted = coursetitles_sorted
             _LOGGER.warning("Courses in these centers: %s", self._coursetitles_sorted)
 
             return await self.async_step_courses()

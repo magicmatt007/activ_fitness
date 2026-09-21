@@ -206,6 +206,11 @@ class CourseSensor(BaseSensorCourse, SensorEntity):
             case SensorType.ACTUAL_PERSONS:
                 return int(course.actual_persons)
             case SensorType.BOOKING_LEVEL:
+                # max_persons is 0 for non-bookable placeholder entries (e.g. a
+                # "Seasonal break" room block), which would otherwise raise
+                # ZeroDivisionError and take down the whole sensor platform.
+                if not course.max_persons:
+                    return None
                 return round(course.actual_persons / course.max_persons * 100, 0)
             case SensorType.COURSE_ID:
                 return course.course_id_tac
@@ -369,4 +374,7 @@ class LastCheckinSensor(CoordinatorEntity, SensorEntity):
         timezone = pytz.timezone("Europe/Zurich")
         if data.last_checkin is not None:
             return timezone.localize(data.last_checkin)
-        return False
+        # A TIMESTAMP-device-class sensor must return None (not False) when there
+        # is no value, or HA rejects the state outright and the whole platform
+        # setup fails.
+        return None

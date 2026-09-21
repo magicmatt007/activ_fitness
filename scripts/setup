@@ -4,4 +4,16 @@ set -e
 
 cd "$(dirname "$0")/.."
 
-python3 -m pip install --requirement requirements.txt
+# Home Assistant requires Python >= 3.14 (see requirements.txt).
+if ! python3 -c 'import sys; sys.exit(sys.version_info < (3, 14))'; then
+    echo "Python 3.14 or newer is required, found: $(python3 --version)" >&2
+    exit 1
+fi
+
+# Install into a project venv: avoids the system/user site-packages, which
+# are not reliably importable for packages HA installs at first start.
+if [[ ! -d "${PWD}/.venv" ]]; then
+    python3 -m venv "${PWD}/.venv"
+fi
+"${PWD}/.venv/bin/python" -m pip install --upgrade pip
+"${PWD}/.venv/bin/python" -m pip install --requirement requirements.txt

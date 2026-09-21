@@ -1,10 +1,10 @@
 """The example sensor integration."""
 from __future__ import annotations
 
+import asyncio
 from datetime import timedelta
 import logging
 
-import async_timeout
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant, ServiceCall
@@ -14,7 +14,13 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 # from .activ_fitness import api
 from .activ_fitness.api_class import Api
-from .const import DOMAIN, UPDATE_INTERVAL
+from .const import (
+    CHECKINS_ENABLED,
+    CONF_CHECKINS_STATE,
+    CONF_MIGROS_TOKENS,
+    DOMAIN,
+    UPDATE_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -78,7 +84,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     username = entry.data["username"]
     centers = entry.data["centers"]
     center_ids = entry.data["center_ids"]
-    courses = entry.data["courses"]
+    # "courses" can be missing entirely when the multi-select in the config flow's
+    # courses step was submitted empty (no course-name filter -> get_course_list
+    # returns everything for the selected centers).
+    courses = entry.data.get("courses", [])
     _LOGGER.warning("User input %s %s %s %s", username, centers, center_ids, courses)
 
     # #TO DO: get Api object:
@@ -147,7 +156,26 @@ class MyUpdateCoordinator(DataUpdateCoordinator):
         self.selected_centers = selected_centers
         session = aiohttp_client.async_get_clientsession(hass)
         ssl_context = False
-        self._api = Api(session=session, ssl_context=ssl_context)
+        self._api = Api(
+            session=session,
+            ssl_context=ssl_context,
+            token_state=entry.data.get(CONF_MIGROS_TOKENS),
+            token_update_callback=self._store_tokens,
+            checkins_state=entry.data.get(CONF_CHECKINS_STATE),
+            checkins_state_callback=self._store_checkins_state,
+        )
+
+    def _store_tokens(self, token_state: dict) -> None:
+        """Persist the Migros tokens so a restart doesn't need a password login."""
+        self.hass.config_entries.async_update_entry(
+            self.entry, data={**self.entry.data, CONF_MIGROS_TOKENS: token_state}
+        )
+
+    def _store_checkins_state(self, state: dict) -> None:
+        """Persist the Migros web cookies so checkins don't need a password login."""
+        self.hass.config_entries.async_update_entry(
+            self.entry, data={**self.entry.data, CONF_CHECKINS_STATE: state}
+        )
 
     async def _async_update_data(self) -> Api | None:
         """Fetch data from API endpoint.
@@ -162,7 +190,7 @@ class MyUpdateCoordinator(DataUpdateCoordinator):
             # selected_centers= [54] # 54 = Schlieren, 96 = Olten
             # selected_course_names = ["BODYPUMP® 55'"]
 
-            async with async_timeout.timeout(15):
+            async with asyncio.timeout(15):
                 _LOGGER.warning("--1--")
                 await self._api.login(user=self.username, pwd=self.password)
                 _LOGGER.warning("--2--")
@@ -175,12 +203,22 @@ class MyUpdateCoordinator(DataUpdateCoordinator):
                 _LOGGER.warning("--4--")
                 await self._api.get_bookings()
                 _LOGGER.warning("--5--")
-                await self._api.loginCheckins(
-                    user=self.username, pwd=self.password
-                )  # temporarily disabled
-                await self._api.get_checkins()  # temporarily disabled
-                _LOGGER.warning("--6--")
-                return self._api
+
+            # Checkins come from the shop website, not the Netpulse API. They are
+            # best-effort: a failure here must not stop courses/bookings updating.
+            if CHECKINS_ENABLED:
+                try:
+                    async with asyncio.timeout(30):
+                        await self._api.get_checkins(
+                            user=self.username, pwd=self.password
+                        )
+                    _LOGGER.warning("--6--")
+                except Exception as checkins_error:
+                    _LOGGER.warning(
+                        "Checkins update failed (non-fatal): %s", checkins_error
+                    )
+
+            return self._api
 
         # except ApiAuthError as err:
         #     # Raising ConfigEntryAuthFailed will cancel future updates
